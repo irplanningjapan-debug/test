@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ひなた天気 宮崎</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --mango: #ff9f1c;
+    --mango-deep: #f26b1d;
+    --sun: #ffd23f;
+    --sea: #0a7ea4;
+    --sea-deep: #05506e;
+    --sky: #7fd3f0;
+    --phoenix: #2e8b57;
+    --sand: #fff6e5;
+    --ink: #1f3340;
+    --muted: #5d7381;
+    --card: #ffffff;
+    --line: #f1e3c8;
+    --rain: #4f7fb8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "M PLUS Rounded 1c", "Hiragino Maru Gothic ProN", "Hiragino Sans", "Yu Gothic", sans-serif;
+    color: var(--ink);
+    background: var(--sand);
+    line-height: 1.6;
+  }
+
+  /* ===== ヒーロー：空と日向灘 ===== */
+  .hero {
+    position: relative;
+    overflow: hidden;
+    color: #fff;
+    background: linear-gradient(180deg, #4cc3ee 0%, var(--sky) 45%, #bdeaf7 70%, var(--sea) 70.1%, var(--sea-deep) 100%);
+    padding: 24px 16px 120px;
+    transition: background .6s;
+  }
+  .hero.cloudy { background: linear-gradient(180deg, #8fb3c6 0%, #b9d0db 45%, #d7e4ea 70%, #3f7f98 70.1%, #2a5a6e 100%); }
+  .hero.rainy  { background: linear-gradient(180deg, #5b7486 0%, #7f97a6 45%, #a5b7c2 70%, #345e72 70.1%, #1f4252 100%); }
+
+  .sunball {
+    position: absolute; right: 8%; top: 28px;
+    width: 120px; height: 120px; border-radius: 50%;
+    background: radial-gradient(circle, #fff7c2 0%, var(--sun) 45%, rgba(255,159,28,0) 72%);
+    animation: pulse 5s ease-in-out infinite;
+  }
+  .hero.cloudy .sunball, .hero.rainy .sunball { opacity: .25; }
+  @keyframes pulse { 50% { transform: scale(1.08); } }
+
+  .palm { position: absolute; bottom: 40px; width: 150px; opacity: .9; pointer-events: none; }
+  .palm.left { left: -18px; }
+  .palm.right { right: -10px; transform: scaleX(-1); width: 120px; }
+  .palm svg { width: 100%; height: auto; display: block; }
+
+  .waves { position: absolute; left: 0; right: 0; bottom: -2px; height: 70px; }
+  .waves svg { position: absolute; bottom: 0; width: 200%; height: 100%; }
+  .waves .w1 { animation: drift 14s linear infinite; opacity: .55; }
+  .waves .w2 { animation: drift 9s linear infinite reverse; }
+  @keyframes drift { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+  .wrap { max-width: 980px; margin: 0 auto; position: relative; z-index: 1; }
+  .brand { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .brand h1 {
+    margin: 0; font-size: clamp(1.8rem, 5vw, 2.6rem); font-weight: 800; letter-spacing: .04em;
+    text-shadow: 0 2px 0 rgba(0,0,0,.12);
+  }
+  .brand h1 span { color: var(--sun); }
+  .brand small { font-size: .95rem; opacity: .95; }
+  .meta { font-size: .85rem; opacity: .95; margin-top: 2px; }
+
+  .tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 14px; }
+  .tabs button {
+    font: inherit; font-weight: 700; font-size: .9rem;
+    border: 2px solid rgba(255,255,255,.85); background: rgba(255,255,255,.18);
+    color: #fff; padding: 6px 14px; border-radius: 999px; cursor: pointer;
+    backdrop-filter: blur(4px);
+  }
+  .tabs button[aria-pressed="true"] { background: #fff; color: var(--mango-deep); }
+
+  .today {
+    display: grid; grid-template-columns: auto 1fr; gap: 8px 24px; align-items: center;
+    background: rgba(10,60,85,.28); border: 2px solid rgba(255,255,255,.55); text-shadow: 0 1px 3px rgba(0,0,0,.25);
+    border-radius: 24px; padding: 18px 22px; backdrop-filter: blur(6px);
+    max-width: 640px;
+  }
+  .today .icon { width: 120px; height: 120px; }
+  .today .label { font-size: .9rem; font-weight: 700; opacity: .95; }
+  .today .weather { font-size: clamp(1.3rem, 4vw, 1.8rem); font-weight: 800; margin: 2px 0 6px; }
+  .temps { display: flex; gap: 16px; align-items: baseline; flex-wrap: wrap; }
+  .temps .hi { font-size: 2.4rem; font-weight: 800; color: #fff2c4; text-shadow: 0 2px 0 rgba(242,107,29,.55); }
+  .temps .lo { font-size: 1.5rem; font-weight: 700; color: #d9f4ff; }
+  .temps .tcity { font-size: .85rem; opacity: .9; }
+
+  .bubble {
+    grid-column: 1 / -1; position: relative;
+    background: #fff; color: var(--ink); border-radius: 18px; padding: 12px 16px; margin-top: 6px;
+    font-weight: 700; box-shadow: 0 4px 0 rgba(0,0,0,.08); text-shadow: none;
+  }
+  .bubble::before {
+    content: ""; position: absolute; top: -10px; left: 40px;
+    border: 10px solid transparent; border-top: 0; border-bottom-color: #fff;
+  }
+  .bubble .who { color: var(--mango-deep); margin-right: 6px; }
+  .bubble .yaku { display: block; font-weight: 400; font-size: .8rem; color: var(--muted); margin-top: 2px; }
+
+  /* ===== 本文 ===== */
+  main { padding: 0 16px 48px; margin-top: -60px; position: relative; z-index: 2; }
+  section {
+    background: var(--card); border-radius: 22px; padding: 20px;
+    margin-bottom: 20px; box-shadow: 0 6px 0 var(--line), 0 10px 24px rgba(31,51,64,.06);
+  }
+  h2 {
+    margin: 0 0 14px; font-size: 1.15rem; display: flex; align-items: center; gap: 8px;
+  }
+  h2 .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--mango); box-shadow: 0 0 0 4px #ffe3bd; }
+  h2 small { font-weight: 400; color: var(--muted); font-size: .8rem; }
+
+  .days { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+  .day { border: 2px solid var(--line); border-radius: 18px; padding: 14px; background: linear-gradient(180deg, #fffdf7, #fff); }
+  .day .head { display: flex; justify-content: space-between; align-items: baseline; }
+  .day .when { font-weight: 800; font-size: 1.05rem; }
+  .day .date { color: var(--muted); font-size: .85rem; }
+  .day .row { display: flex; align-items: center; gap: 10px; margin: 6px 0; }
+  .day .icon { width: 64px; height: 64px; flex: none; }
+  .day .wtxt { font-weight: 700; font-size: .95rem; }
+  .day .tt { font-weight: 800; }
+  .day .tt .h { color: var(--mango-deep); }
+  .day .tt .l { color: var(--sea); }
+  .day dl { margin: 8px 0 0; display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; font-size: .85rem; }
+  .day dt { color: var(--muted); }
+  .day dd { margin: 0; }
+  .pops { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: 10px; text-align: center; font-size: .75rem; }
+  .pops div { background: #eef7fb; border-radius: 8px; padding: 4px 0; }
+  .pops b { display: block; font-size: .95rem; color: var(--rain); }
+  .pops .na b { color: #b5c3cb; }
+
+  .cities { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+  .city {
+    border-radius: 18px; padding: 14px; color: #fff; position: relative; overflow: hidden;
+    background: linear-gradient(135deg, var(--sea), #1ba6c9);
+  }
+  .city:nth-child(2) { background: linear-gradient(135deg, #2e8b57, #57b36f); }
+  .city:nth-child(3) { background: linear-gradient(135deg, #b5452b, #e0773b); }
+  .city:nth-child(4) { background: linear-gradient(135deg, #0f6f8f, #3fb7b0); }
+  .city:nth-child(5) { background: linear-gradient(135deg, #3d5a3a, #6f8f4e); }
+  .city .name { font-weight: 800; font-size: 1.1rem; }
+  .city .tag { font-size: .75rem; opacity: .9; }
+  .city .t { margin-top: 8px; font-size: .85rem; }
+  .city .t b { font-size: 1.4rem; }
+  .city .emoji { position: absolute; right: 10px; top: 8px; font-size: 1.6rem; opacity: .9; }
+
+  .scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .week { display: grid; grid-template-columns: repeat(7, minmax(92px, 1fr)); gap: 8px; min-width: 680px; }
+  .wk { text-align: center; border-radius: 16px; padding: 10px 4px; background: #fffaf0; border: 2px solid var(--line); }
+  .wk.sat .d { color: #2f6fd1; } .wk.sun .d { color: #d1432f; }
+  .wk .d { font-weight: 800; }
+  .wk .icon { width: 52px; height: 52px; margin: 4px auto; display: block; }
+  .wk .lbl { font-size: .72rem; min-height: 2.4em; color: var(--muted); }
+  .wk .hl { font-weight: 800; }
+  .wk .hl .h { color: var(--mango-deep); } .wk .hl .l { color: var(--sea); }
+  .wk .p { font-size: .8rem; color: var(--rain); font-weight: 700; }
+  .wk .r { font-size: .7rem; color: var(--muted); }
+
+  .surf { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+  .surf .area { border-radius: 18px; padding: 14px; background: linear-gradient(180deg, #e7f7fd, #f6fcff); border: 2px solid #cfeaf5; }
+  .surf h3 { margin: 0 0 8px; font-size: 1rem; color: var(--sea-deep); }
+  .surf ul { list-style: none; margin: 0; padding: 0; }
+  .surf li { display: grid; grid-template-columns: 4.5em 4.5em 1fr; gap: 6px; align-items: center; padding: 6px 0; border-top: 1px dashed #cfeaf5; font-size: .9rem; }
+  .surf li:first-child { border-top: 0; }
+  .surf .m { font-weight: 800; color: var(--sea); }
+  .badge { display: inline-block; font-size: .75rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+  .b-calm { background: #d8f5e4; color: #1d7a45; }
+  .b-good { background: #fff0cc; color: #a5600b; }
+  .b-pro  { background: #ffe0cc; color: #b2450f; }
+  .b-danger { background: #ffd6d6; color: #b3261e; }
+
+  .overview { white-space: pre-wrap; font-size: .95rem; margin: 0; }
+
+  .status { text-align: center; padding: 30px; color: var(--muted); }
+  .status button { font: inherit; font-weight: 700; margin-top: 10px; padding: 8px 18px; border-radius: 999px; border: 0; background: var(--mango); color: #fff; cursor: pointer; }
+
+  footer { text-align: center; font-size: .8rem; color: var(--muted); padding: 0 16px 32px; }
+  footer a { color: var(--sea); }
+
+  @media (max-width: 520px) {
+    .today { grid-template-columns: minmax(0, 1fr); text-align: center; padding: 16px; }
+    .today .icon { margin: 0 auto; width: 100px; height: 100px; }
+    .temps { justify-content: center; }
+    .palm.left { width: 110px; } .palm.right { width: 90px; }
+    .sunball { width: 80px; height: 80px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="hero" id="hero">
+  <div class="sunball" aria-hidden="true"></div>
+
+  <div class="palm left" aria-hidden="true">
+    <svg viewBox="0 0 160 260"><g fill="#1f5e3a">
+      <path d="M78 258 C82 200 86 140 80 70 L86 70 C92 140 90 200 88 258Z" fill="#6b4a2b"/>
+      <path d="M82 70 C60 40 30 38 4 52 C30 46 52 52 72 74Z"/>
+      <path d="M82 70 C70 30 46 12 18 10 C44 22 62 40 74 74Z"/>
+      <path d="M82 70 C92 34 116 14 146 12 C118 26 100 44 90 74Z"/>
+      <path d="M84 72 C110 48 140 50 158 66 C134 58 112 62 92 78Z"/>
+      <path d="M82 72 C64 78 44 98 36 124 C52 104 66 92 86 80Z"/>
+      <path d="M86 72 C106 80 122 100 128 126 C114 106 100 94 84 82Z"/>
+    </g></svg>
+  </div>
+  <div class="palm right" aria-hidden="true">
+    <svg viewBox="0 0 160 260"><g fill="#1f5e3a">
+      <path d="M78 258 C82 200 86 140 80 70 L86 70 C92 140 90 200 88 258Z" fill="#6b4a2b"/>
+      <path d="M82 70 C60 40 30 38 4 52 C30 46 52 52 72 74Z"/>
+      <path d="M82 70 C70 30 46 12 18 10 C44 22 62 40 74 74Z"/>
+      <path d="M82 70 C92 34 116 14 146 12 C118 26 100 44 90 74Z"/>
+      <path d="M84 72 C110 48 140 50 158 66 C134 58 112 62 92 78Z"/>
+      <path d="M82 72 C64 78 44 98 36 124 C52 104 66 92 86 80Z"/>
+    </g></svg>
+  </div>
+
+  <div class="wrap">
+    <div class="brand">
+      <h1>ひなた天気 <span>宮崎</span></h1>
+      <small>日向灘からお届けする、宮崎県の天気予報</small>
+    </div>
+    <div class="meta" id="meta">読み込み中…</div>
+
+    <nav class="tabs" id="tabs" aria-label="地域を選ぶ"></nav>
+
+    <div class="today" id="today">
+      <div class="status" style="color:#fff">お天気を取りに行きよるよ…</div>
+    </div>
+  </div>
+
+  <div class="waves" aria-hidden="true">
+    <svg class="w1" viewBox="0 0 1200 70" preserveAspectRatio="none"><path fill="#fff6e5" d="M0 30 Q75 0 150 30 T300 30 T450 30 T600 30 T750 30 T900 30 T1050 30 T1200 30 V70 H0Z"/></svg>
+    <svg class="w2" viewBox="0 0 1200 70" preserveAspectRatio="none"><path fill="#fff6e5" d="M0 45 Q100 20 200 45 T400 45 T600 45 T800 45 T1000 45 T1200 45 V70 H0Z"/></svg>
+  </div>
+</header>
+
+<main class="wrap">
+  <section>
+    <h2><span class="dot"></span>3日間の天気 <small id="regionName"></small></h2>
+    <div class="days" id="days"></div>
+  </section>
+
+  <section>
+    <h2><span class="dot"></span>まちの気温</h2>
+    <div class="cities" id="cities"></div>
+  </section>
+
+  <section>
+    <h2><span class="dot"></span>週間予報 <small>宮崎県・気温は宮崎市</small></h2>
+    <div class="scroll"><div class="week" id="week"></div></div>
+  </section>
+
+  <section>
+    <h2><span class="dot"></span>日向灘の波 <small>サーファーの皆さんへ</small></h2>
+    <div class="surf" id="surf"></div>
+  </section>
+
+  <section>
+    <h2><span class="dot"></span>天気のあらまし</h2>
+    <p class="overview" id="overview">—</p>
+  </section>
+</main>
+
+<footer>
+  出典：<a href="https://www.jma.go.jp/bosai/forecast/#area_type=offices&area_code=450000" target="_blank" rel="noopener">気象庁ホームページ（宮崎地方気象台）</a>のデータを加工して表示しています。<br>
+  30分ごとに自動で更新します。
+</footer>
+
+<script>
+const FORECAST_URL = "https://www.jma.go.jp/bosai/forecast/data/forecast/450000.json";
+const OVERVIEW_URL = "https://www.jma.go.jp/bosai/forecast/data/overview_forecast/450000.json";
+
+// 地域ごとの代表都市
+const REGIONS = [
+  { code: "450010", name: "南部平野部", short: "宮崎・日南", city: "宮崎" },
+  { code: "450020", name: "北部平野部", short: "延岡・日向", city: "延岡" },
+  { code: "450030", name: "南部山沿い", short: "都城・えびの", city: "都城" },
+  { code: "450040", name: "北部山沿い", short: "高千穂・椎葉", city: "高千穂" },
+];
+const CITY_INFO = {
+  "宮崎":  { tag: "青島・鬼の洗濯板", emoji: "🌴" },
+  "延岡":  { tag: "チキン南蛮発祥の地", emoji: "🍗" },
+  "都城":  { tag: "肉と焼酎のまち", emoji: "🍶" },
+  "油津":  { tag: "堀川運河・日南海岸", emoji: "⛵" },
+  "高千穂": { tag: "神話のふるさと・高千穂峡", emoji: "⛩️" },
+};
+const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
+
+let data = null;
+let overview = null;
+let regionCode = "450010";
+try { regionCode = localStorage.getItem("miyazaki-region") || regionCode; } catch (e) {}
+
+// ---------- ユーティリティ ----------
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const zen2han = (s) => String(s || "").replace(/[０-９．]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0));
+const tidy = (s) => zen2han(s).replace(/　+/g, " ").trim();
+const dateOf = (t) => t.slice(0, 10);
+const hourOf = (t) => Number(t.slice(11, 13));
+const todayJST = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
+
+function dayName(date) {
+  const diff = Math.round((Date.parse(date) - Date.parse(todayJST())) / 86400e3);
+  return ["今日", "明日", "明後日"][diff] ?? null;
+}
+function mdw(date) {
+  const d = new Date(date + "T12:00:00Z");
+  return { md: `${d.getUTCMonth() + 1}/${d.getUTCDate()}`, w: WEEKDAYS[d.getUTCDay()], wd: d.getUTCDay() };
+}
+
+// ---------- 天気コード → アイコン ----------
+// main: sun | cloud | rain | snow, sub: 途中で変わる・混じる天気
+function classify(code) {
+  const c = Number(code);
+  const main = ["", "sun", "cloud", "rain", "snow"][Math.floor(c / 100)] || "cloud";
+  const r = c % 100;
+  const has = (list) => list.includes(r);
+  let sub = null;
+  if (main === "sun") {
+    if (has([1, 10, 11, 30, 31, 32])) sub = "cloud";
+    else if (has([4, 5, 15, 16, 17, 24, 60, 70, 81])) sub = "snow";
+    else if (r !== 0) sub = "rain";
+  } else if (main === "cloud") {
+    if (has([1, 10, 11, 23])) sub = "sun";
+    else if (has([4, 5, 15, 16, 17, 30, 50, 60, 70, 81])) sub = "snow";
+    else if (has([9, 31])) sub = null;
+    else if (r !== 0) sub = "rain";
+  } else if (main === "rain") {
+    if (has([1, 11, 20, 23, 24, 25])) sub = "sun";
+    else if (has([2, 13, 21])) sub = "cloud";
+    else if (has([3, 4, 9, 14, 15, 22, 26, 27, 29, 40, 61, 71])) sub = "snow";
+  } else if (main === "snow") {
+    if (has([1, 11, 20, 23, 24, 25])) sub = "sun";
+    else if (has([2, 13, 21])) sub = "cloud";
+    else if (r !== 0) sub = "rain";
+  }
+  const later = Math.floor(r / 10) === 1 || r >= 20;
+  return { main, sub, later, thunder: [8, 19, 40, 50].includes(r) };
+}
+const WORD = { sun: "晴れ", cloud: "くもり", rain: "雨", snow: "雪" };
+function codeLabel(code) {
+  const k = classify(code);
+  return WORD[k.main] + (k.sub ? (k.later ? " のち " : " 時々 ") + WORD[k.sub] : "") + (k.thunder ? "（雷）" : "");
+}
+
+const SVG = {
+  sun: (x, y, s) => `<g transform="translate(${x} ${y}) scale(${s})">
+      <g stroke="#ff9f1c" stroke-width="5" stroke-linecap="round">
+        ${[0, 45, 90, 135, 180, 225, 270, 315].map((a) => `<line x1="0" y1="-30" x2="0" y2="-40" transform="rotate(${a})"/>`).join("")}
+      </g>
+      <circle r="22" fill="#ffd23f" stroke="#ff9f1c" stroke-width="4"/>
+    </g>`,
+  cloud: (x, y, s, dark) => `<g transform="translate(${x} ${y}) scale(${s})">
+      <path d="M-34 14 a16 16 0 0 1 4 -31 a22 22 0 0 1 41 -6 a17 17 0 0 1 23 18 a13 13 0 0 1 -2 19 Z"
+        fill="${dark ? "#a9bccb" : "#ffffff"}" stroke="${dark ? "#6f8798" : "#9fc3d6"}" stroke-width="4" stroke-linejoin="round"/>
+    </g>`,
+  rain: (x, y) => `<g transform="translate(${x} ${y})" fill="#4f9be0">
+      ${[-16, 0, 16].map((dx, i) => `<path d="M${dx} ${i % 2 ? 6 : 0} q-5 9 0 12 q5 -3 0 -12z"/>`).join("")}
+    </g>`,
+  snow: (x, y) => `<g transform="translate(${x} ${y})" fill="#8ec9f2">
+      ${[-16, 0, 16].map((dx, i) => `<circle cx="${dx}" cy="${i % 2 ? 12 : 6}" r="4.5"/>`).join("")}
+    </g>`,
+  bolt: (x, y) => `<path transform="translate(${x} ${y})" d="M0 0 l-8 14 h7 l-4 12 l12 -16 h-7 l5 -10z" fill="#ffc400" stroke="#e08a00" stroke-width="1.5"/>`,
+};
+function iconSVG(code) {
+  const k = classify(code);
+  let body = "";
+  const fall = (kind) => (kind === "snow" ? SVG.snow(50, 68) : SVG.rain(50, 68));
+  if (k.main === "sun") {
+    body += SVG.sun(k.sub ? 42 : 50, k.sub ? 40 : 50, k.sub ? 0.95 : 1.15);
+    if (k.sub === "cloud") body += SVG.cloud(62, 66, 0.8);
+    if (k.sub === "rain" || k.sub === "snow") { body += SVG.cloud(62, 60, 0.75); body += fall(k.sub).replace("translate(50 68)", "translate(62 74)"); }
+  } else if (k.main === "cloud") {
+    if (k.sub === "sun") body += SVG.sun(34, 34, 0.75);
+    body += SVG.cloud(54, k.sub && k.sub !== "sun" ? 46 : 56, 1.05);
+    if (k.sub === "rain" || k.sub === "snow") body += fall(k.sub);
+  } else {
+    if (k.sub === "sun") body += SVG.sun(32, 32, 0.7);
+    body += SVG.cloud(54, 44, 1.05, true);
+    body += fall(k.main);
+    if (k.sub === "snow") body += SVG.snow(70, 74);
+  }
+  if (k.thunder) body += SVG.bolt(72, 56);
+  return `<svg class="icon" viewBox="0 0 100 100" role="img" aria-label="${esc(codeLabel(code))}">${body}</svg>`;
+}
+
+// ---------- データ整理 ----------
+function parse(json) {
+  const short = json[0], week = json[1];
+  const [tsWeather, tsPop, tsTemp] = short.timeSeries;
+
+  // 6時間ごとの降水確率 area -> date -> [4枠]
+  const pops = {};
+  for (const a of tsPop.areas) {
+    pops[a.area.code] = {};
+    tsPop.timeDefines.forEach((t, i) => {
+      const d = dateOf(t);
+      (pops[a.area.code][d] ||= [null, null, null, null])[Math.floor(hourOf(t) / 6)] = a.pops[i];
+    });
+  }
+
+  // 都市の気温 city -> date -> {min, max}
+  const today = todayJST();
+  const temps = {};
+  for (const a of tsTemp.areas) {
+    const m = (temps[a.area.name] = {});
+    tsTemp.timeDefines.forEach((t, i) => {
+      const d = dateOf(t), v = a.temps[i];
+      if (v === "" || v == null) return;
+      m[d] ||= {};
+      if (hourOf(t) >= 9) m[d].max = v; else m[d].min = v;
+    });
+    // 朝の発表では「今日の最低」に最高気温が入るので取り除く
+    for (const d in m) if (d === today && m[d].min === m[d].max) delete m[d].min;
+  }
+
+  // 週間予報（宮崎市の気温）
+  const wW = week.timeSeries[0], wT = week.timeSeries[1];
+  const wArea = wW.areas[0], wTemp = wT.areas[0];
+  const weekly = wW.timeDefines.map((t, i) => {
+    const d = dateOf(t);
+    const st = temps["宮崎"]?.[d] || {};
+    const dayPops = pops["450010"]?.[d]?.filter((p) => p != null && p !== "") || [];
+    return {
+      date: d,
+      code: wArea.weatherCodes[i],
+      pop: wArea.pops[i] || (dayPops.length ? String(Math.max(...dayPops.map(Number))) : ""),
+      rel: wArea.reliabilities?.[i] || "",
+      min: wTemp.tempsMin[i] || st.min || "",
+      max: wTemp.tempsMax[i] || st.max || "",
+    };
+  });
+
+  return {
+    report: short.reportDatetime,
+    office: short.publishingOffice,
+    days: tsWeather.timeDefines.map(dateOf),
+    areas: Object.fromEntries(tsWeather.areas.map((a) => [a.area.code, a])),
+    pops, temps, weekly,
+  };
+}
+
+// ---------- 宮崎弁ひとこと ----------
+function hogen(code, max, pop) {
+  const k = classify(code);
+  const hi = Number(max), p = Number(pop);
+  if (max !== "" && max != null && hi >= 30) return ["今日はてげぬきぃよ〜！ 水分ちゃんととっちょってね。", "今日はとても暑いよ！ 水分をしっかりとってね。"];
+  if (k.main === "rain" || p >= 50) return ["雨が降るかもしれんかい、傘持っていかんといかんよ〜。", "雨が降るかもしれないから、傘を持っていかないとだめだよ。"];
+  if (k.main === "snow") return ["宮崎に雪っちゃ珍しいね！ 道がひやいかい気をつけね。", "宮崎で雪とは珍しい！ 道が冷たいから気をつけてね。"];
+  if (max !== "" && max != null && hi <= 12) return ["てげさみいね〜。上着持って出かけないよ。", "とても寒いね。上着を持って出かけなさいね。"];
+  if (k.main === "sun" && !k.sub) return ["てげ良か天気じゃ！ 青島でも散歩せんね？", "とてもいい天気だね！ 青島でも散歩しない？"];
+  if (k.sub === "rain") return ["晴れ間もあるけど、にわか雨に気をつけちょきね。", "晴れ間もあるけど、にわか雨に気をつけておいてね。"];
+  if (k.main === "sun" || k.sub === "sun") return ["まあまあ良か天気っちゃが。洗濯物も乾くじゃろ。", "まあまあいい天気だよ。洗濯物も乾くでしょう。"];
+  return ["今日はくもりじゃけど、よだきがらんで出かけね〜。", "今日はくもりだけど、面倒がらずに出かけてね。"];
+}
+
+// ---------- 描画 ----------
+function renderTabs() {
+  $("tabs").innerHTML = REGIONS.map((r) =>
+    `<button type="button" data-code="${r.code}" aria-pressed="${r.code === regionCode}">${r.name}<span style="font-weight:400;opacity:.85"> ${r.short}</span></button>`
+  ).join("");
+}
+
+function render() {
+  const P = data;
+  const region = REGIONS.find((r) => r.code === regionCode) || REGIONS[0];
+  const area = P.areas[region.code];
+  renderTabs();
+
+  const rep = new Date(P.report);
+  $("meta").textContent = `${P.office} ${rep.getMonth() + 1}月${rep.getDate()}日 ${rep.getHours()}時 発表`;
+  $("regionName").textContent = `${region.name}（${region.short}）`;
+
+  // ヒーロー
+  const d0 = P.days[0];
+  const code0 = area.weatherCodes[0];
+  const t0 = P.temps[region.city]?.[d0] || {};
+  const d1 = P.days[1];
+  const t1 = P.temps[region.city]?.[d1] || {};
+  const pops0 = (P.pops[region.code]?.[d0] || []).filter((p) => p != null && p !== "").map(Number);
+  const maxPop = pops0.length ? Math.max(...pops0) : "";
+  const k = classify(code0);
+  $("hero").className = "hero" + (k.main === "rain" || k.main === "snow" ? " rainy" : k.main === "cloud" && k.sub !== "sun" ? " cloudy" : "");
+  const [say, yaku] = hogen(code0, t0.max ?? t1.max, maxPop);
+  const hasToday = t0.max != null || t0.min != null;
+  const tShow = hasToday ? t0 : t1;
+  $("today").innerHTML = `
+    ${iconSVG(code0)}
+    <div>
+      <div class="label">${esc(dayName(d0) || "")}の${esc(region.name)}</div>
+      <div class="weather">${esc(tidy(area.weathers[0]))}</div>
+      <div class="temps">
+        <span class="hi">${esc(tShow.max ?? "--")}℃</span>
+        <span class="lo">${esc(tShow.min ?? "--")}℃</span>
+        <span class="tcity">${esc(region.city)}${hasToday ? "" : "・明日の最高／最低"}${maxPop !== "" ? `　降水確率 ${maxPop}%` : ""}</span>
+      </div>
+    </div>
+    <div class="bubble"><span class="who">みやざき君：</span>${esc(say)}<span class="yaku">（訳）${esc(yaku)}</span></div>`;
+
+  // 3日間
+  $("days").innerHTML = P.days.map((d, i) => {
+    const { md, w } = mdw(d);
+    const t = P.temps[region.city]?.[d] || {};
+    const pp = P.pops[region.code]?.[d] || [null, null, null, null];
+    const waves = area.waves?.[i];
+    return `<article class="day">
+      <div class="head"><span class="when">${esc(dayName(d) || md)}</span><span class="date">${md}（${w}）</span></div>
+      <div class="row">${iconSVG(area.weatherCodes[i])}
+        <div><div class="wtxt">${esc(tidy(area.weathers[i]))}</div>
+        <div class="tt"><span class="h">${esc(t.max ?? "--")}℃</span> / <span class="l">${esc(t.min ?? "--")}℃</span></div></div>
+      </div>
+      <dl><dt>風</dt><dd>${esc(tidy(area.winds?.[i]) || "—")}</dd>
+      ${waves ? `<dt>波</dt><dd>${esc(tidy(waves))}</dd>` : ""}</dl>
+      <div class="pops">${["0-6", "6-12", "12-18", "18-24"].map((h, j) =>
+        `<div class="${pp[j] == null || pp[j] === "" ? "na" : ""}">${h}時<b>${pp[j] == null || pp[j] === "" ? "—" : pp[j] + "%"}</b></div>`).join("")}</div>
+    </article>`;
+  }).join("");
+
+  // 都市
+  $("cities").innerHTML = Object.keys(CITY_INFO).map((name) => {
+    const info = CITY_INFO[name];
+    const m = P.temps[name] || {};
+    const items = P.days.slice(0, 2).map((d) => m[d] && (m[d].max || m[d].min)
+      ? `<div class="t">${esc(dayName(d))} <b>${esc(m[d].max ?? "--")}</b>℃ / ${esc(m[d].min ?? "--")}℃</div>` : "").join("");
+    return `<div class="city"><span class="emoji" aria-hidden="true">${info.emoji}</span>
+      <div class="name">${esc(name)}</div><div class="tag">${esc(info.tag)}</div>${items || '<div class="t">—</div>'}</div>`;
+  }).join("");
+
+  // 週間
+  $("week").innerHTML = P.weekly.map((x) => {
+    const { md, w, wd } = mdw(x.date);
+    return `<div class="wk ${wd === 0 ? "sun" : wd === 6 ? "sat" : ""}">
+      <div class="d">${md}（${w}）</div>
+      ${iconSVG(x.code)}
+      <div class="lbl">${esc(codeLabel(x.code))}</div>
+      <div class="hl"><span class="h">${esc(x.max || "--")}</span> / <span class="l">${esc(x.min || "--")}</span></div>
+      <div class="p">☂ ${x.pop !== "" ? esc(x.pop) + "%" : "—"}</div>
+      ${x.rel ? `<div class="r">信頼度 ${esc(x.rel)}</div>` : ""}
+    </div>`;
+  }).join("");
+
+  // 波
+  const surfAreas = [["450010", "南部（宮崎・日南・青島）"], ["450020", "北部（日向・延岡・お倉ヶ浜）"]];
+  $("surf").innerHTML = surfAreas.map(([code, label]) => {
+    const a = P.areas[code];
+    const list = (a.waves || []).map((w, i) => {
+      const m = parseFloat(zen2han(w));
+      let b = ["b-calm", "のんびり"];
+      if (m >= 3) b = ["b-danger", "危ないかい入らんで"];
+      else if (m >= 2) b = ["b-pro", "上級者むけ"];
+      else if (m >= 1) b = ["b-good", "良か波期待"];
+      return `<li><span>${esc(dayName(P.days[i]) || mdw(P.days[i]).md)}</span><span class="m">${isNaN(m) ? "—" : m + "m"}</span>
+        <span>${isNaN(m) ? "" : `<span class="badge ${b[0]}">${b[1]}</span>`} ${/うねり/.test(w) ? "うねりあり" : ""}</span></li>`;
+    }).join("");
+    return `<div class="area"><h3>🏄 ${esc(label)}</h3><ul>${list || "<li>情報なし</li>"}</ul></div>`;
+  }).join("");
+
+  // 概況
+  $("overview").textContent = overview?.text ? zen2han(overview.text).replace(/^　/gm, "") : "—";
+}
+
+async function load() {
+  try {
+    const [f, o] = await Promise.all([
+      fetch(FORECAST_URL, { cache: "no-store" }).then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); }),
+      fetch(OVERVIEW_URL, { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+    ]);
+    data = parse(f);
+    overview = o;
+    render();
+  } catch (e) {
+    console.error(e);
+    $("meta").textContent = "";
+    $("today").innerHTML = `<div class="status" style="color:#fff">あら、お天気が取れんかったわ…（通信を確認してね）<br><button type="button" onclick="load()">もう一回</button></div>`;
+  }
+}
+
+$("tabs").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-code]");
+  if (!b || !data) return;
+  regionCode = b.dataset.code;
+  try { localStorage.setItem("miyazaki-region", regionCode); } catch (err) {}
+  render();
+});
+
+renderTabs();
+load();
+setInterval(load, 30 * 60 * 1000);
+</script>
+</body>
+</html>

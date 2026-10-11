@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>まるみえ活動資金</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #fdf8ef;
+    --card: #ffffff;
+    --ink: #3a3226;
+    --muted: #8a7f70;
+    --line: #efe4d2;
+    --in: #2f9e6e;
+    --in-soft: #e3f6ec;
+    --out: #e0654f;
+    --out-soft: #fde8e3;
+    --bal: #f2a516;
+    --bal-soft: #fff3d6;
+    --accent: #5b8def;
+    --accent-soft: #e7efff;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body {
+    margin: 0;
+    font-family: "M PLUS Rounded 1c", "Hiragino Maru Gothic ProN", "Hiragino Sans", "Yu Gothic", sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.6;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 16px; }
+
+  header {
+    background: linear-gradient(135deg, #ffd889, #ffb98a);
+    padding: 22px 0 54px;
+    border-radius: 0 0 36px 36px;
+  }
+  .brand { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .brand svg { width: 64px; height: 64px; flex: none; }
+  .brand h1 { margin: 0; font-size: clamp(1.6rem, 5vw, 2.2rem); font-weight: 800; letter-spacing: .04em; }
+  .brand p { margin: 0; font-size: .9rem; color: #6b5536; }
+  .head-tools { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+
+  main { margin-top: -36px; padding-bottom: 48px; }
+
+  .btn {
+    font: inherit; font-weight: 700; font-size: .9rem;
+    border: 0; border-radius: 999px; padding: 8px 16px; cursor: pointer;
+    background: #fff; color: var(--ink); box-shadow: 0 3px 0 rgba(0,0,0,.08);
+  }
+  .btn:hover { filter: brightness(.97); }
+  .btn:active { transform: translateY(1px); box-shadow: 0 2px 0 rgba(0,0,0,.08); }
+  .btn.primary { background: var(--accent); color: #fff; }
+  .btn.ghost { background: transparent; box-shadow: none; color: var(--muted); padding: 6px 10px; }
+  .btn.small { font-size: .8rem; padding: 4px 10px; }
+
+  .card {
+    background: var(--card); border-radius: 22px; padding: 20px;
+    box-shadow: 0 5px 0 var(--line), 0 10px 24px rgba(58,50,38,.05);
+    margin-bottom: 20px;
+  }
+  h2 { margin: 0 0 14px; font-size: 1.1rem; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  h2 .emoji { font-size: 1.3rem; }
+
+  /* ===== 合計 ===== */
+  .period { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
+  .period label { font-size: .85rem; color: var(--muted); }
+  select, input, textarea {
+    font: inherit; color: var(--ink);
+    border: 2px solid var(--line); border-radius: 12px; padding: 8px 10px; background: #fffdf9;
+    width: 100%;
+  }
+  select:focus, input:focus, textarea:focus { outline: none; border-color: var(--accent); background: #fff; }
+  .period select { width: auto; }
+
+  .totals { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+  .total { border-radius: 20px; padding: 16px 18px; }
+  .total .lbl { font-weight: 700; font-size: .9rem; display: flex; align-items: center; gap: 6px; }
+  .total .num { font-size: clamp(1.6rem, 4.5vw, 2.1rem); font-weight: 800; letter-spacing: .02em; font-variant-numeric: tabular-nums; }
+  .total .sub { font-size: .8rem; color: var(--muted); }
+  .total.in { background: var(--in-soft); } .total.in .num { color: var(--in); }
+  .total.out { background: var(--out-soft); } .total.out .num { color: var(--out); }
+  .total.bal { background: var(--bal-soft); } .total.bal .num { color: #b97800; }
+  .total.bal.minus .num { color: var(--out); }
+
+  .meter { margin-top: 14px; }
+  .meter .bar { height: 14px; background: var(--in-soft); border-radius: 999px; overflow: hidden; }
+  .meter .bar span { display: block; height: 100%; background: linear-gradient(90deg, #f6a08f, var(--out)); border-radius: 999px; transition: width .5s; }
+  .meter .cap { font-size: .85rem; color: var(--muted); margin-top: 4px; }
+  .cheer { margin-top: 12px; background: #fffaf0; border: 2px dashed #f5d9a8; border-radius: 16px; padding: 10px 14px; font-weight: 700; font-size: .9rem; }
+
+  /* ===== 入力フォーム ===== */
+  .kind { display: inline-flex; background: #f6efe3; border-radius: 999px; padding: 4px; gap: 4px; margin-bottom: 14px; }
+  .kind button { font: inherit; font-weight: 800; border: 0; border-radius: 999px; padding: 8px 22px; cursor: pointer; background: transparent; color: var(--muted); }
+  .kind button[aria-pressed="true"].in { background: var(--in); color: #fff; }
+  .kind button[aria-pressed="true"].out { background: var(--out); color: #fff; }
+
+  .form { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px 14px; }
+  .form .wide { grid-column: 1 / -1; }
+  .field label { display: block; font-size: .82rem; font-weight: 700; color: var(--muted); margin-bottom: 4px; }
+  .field label .req { color: var(--out); margin-left: 2px; }
+  .yen { position: relative; }
+  .yen input { padding-right: 34px; text-align: right; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .yen::after { content: "円"; position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: .85rem; }
+  .form-actions { display: flex; gap: 10px; align-items: center; margin-top: 16px; flex-wrap: wrap; }
+  .form-actions .msg { font-size: .9rem; font-weight: 700; color: var(--in); }
+  .editing-note { background: var(--accent-soft); color: #2f5fc4; border-radius: 12px; padding: 6px 12px; font-size: .85rem; font-weight: 700; margin-bottom: 12px; }
+
+  /* ===== 内訳 ===== */
+  .breakdowns { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+  .bd-row { display: grid; grid-template-columns: 7.5em 1fr auto; gap: 10px; align-items: center; padding: 6px 0; font-size: .9rem; }
+  .bd-row .name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bd-row .bars { display: grid; gap: 3px; }
+  .bd-row .b { height: 8px; border-radius: 999px; min-width: 2px; }
+  .bd-row .b.in { background: var(--in); } .bd-row .b.out { background: var(--out); }
+  .bd-row .v { text-align: right; font-variant-numeric: tabular-nums; font-size: .82rem; line-height: 1.35; }
+  .bd-row .v .i { color: var(--in); } .bd-row .v .o { color: var(--out); }
+  .legend { font-size: .78rem; color: var(--muted); display: flex; gap: 12px; }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 4px; vertical-align: -1px; }
+
+  /* ===== 一覧 ===== */
+  .filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 14px; }
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table { width: 100%; border-collapse: separate; border-spacing: 0; min-width: 900px; font-size: .88rem; }
+  th { text-align: left; font-size: .78rem; color: var(--muted); font-weight: 700; padding: 8px; border-bottom: 2px solid var(--line); white-space: nowrap; }
+  td { padding: 10px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  tr:hover td { background: #fffaf2; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td.in { color: var(--in); font-weight: 800; }
+  td.out { color: var(--out); font-weight: 800; }
+  td.date { white-space: nowrap; }
+  .chip { display: inline-block; font-size: .75rem; font-weight: 700; padding: 1px 8px; border-radius: 999px; background: #f4ede1; white-space: nowrap; }
+  .chip.in { background: var(--in-soft); color: var(--in); }
+  .chip.out { background: var(--out-soft); color: var(--out); }
+  .memo { color: var(--muted); font-size: .8rem; }
+  .ops { white-space: nowrap; }
+  tfoot td { font-weight: 800; background: #fffaf0; border-bottom: 0; }
+  .empty { text-align: center; padding: 34px 10px; color: var(--muted); }
+  .empty .big { font-size: 2.4rem; }
+
+  /* ===== 設定 ===== */
+  details.card > summary { cursor: pointer; font-weight: 800; font-size: 1.05rem; list-style: none; display: flex; align-items: center; gap: 8px; }
+  details.card > summary::-webkit-details-marker { display: none; }
+  details.card > summary::after { content: "▼"; font-size: .7rem; color: var(--muted); margin-left: auto; transition: transform .2s; }
+  details.card[open] > summary::after { transform: rotate(180deg); }
+  .masters { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; margin-top: 16px; }
+  .master h3 { margin: 0 0 8px; font-size: .95rem; }
+  .master ul { list-style: none; padding: 0; margin: 0 0 8px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .master li { background: #f6efe3; border-radius: 999px; padding: 3px 4px 3px 12px; font-size: .85rem; display: flex; align-items: center; gap: 2px; }
+  .master li button { border: 0; background: transparent; cursor: pointer; color: var(--muted); font-size: .9rem; border-radius: 50%; width: 22px; height: 22px; }
+  .master li button:hover { background: #fff; color: var(--out); }
+  .master form { display: flex; gap: 6px; }
+  .master form input { padding: 6px 10px; }
+  .backup { margin-top: 18px; padding-top: 16px; border-top: 2px dashed var(--line); display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .backup p { width: 100%; margin: 0 0 4px; font-size: .85rem; color: var(--muted); }
+
+  /* ===== 月ごと ===== */
+  .monthly table { min-width: 620px; }
+  .monthly td.m { font-weight: 800; white-space: nowrap; }
+  .monthly tr.now td { background: #fff6e0; }
+  .monthly tr.zero td { color: #c3b8a8; }
+  .mbar { position: relative; height: 22px; min-width: 160px; }
+  .mbar span { position: absolute; height: 9px; border-radius: 999px; left: 0; }
+  .mbar .i { top: 1px; background: var(--in); }
+  .mbar .o { top: 12px; background: var(--out); }
+  td.plus { color: var(--in); font-weight: 800; }
+  td.minus { color: var(--out); font-weight: 800; }
+  .bal-note { font-size: .8rem; color: var(--muted); margin-top: 4px; line-height: 1.5; }
+  .bal-note b { color: var(--ink); }
+
+  .toast {
+    position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%) translateY(20px);
+    background: var(--ink); color: #fff; padding: 10px 18px; border-radius: 999px; font-weight: 700; font-size: .9rem;
+    opacity: 0; transition: .25s; pointer-events: none; z-index: 10; max-width: calc(100% - 32px);
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .modal-bg { position: fixed; inset: 0; background: rgba(58,50,38,.35); display: grid; place-items: center; padding: 16px; z-index: 20; }
+  .modal { background: #fff; border-radius: 22px; padding: 22px; max-width: 380px; width: 100%; text-align: center; }
+  .modal p { margin: 0 0 16px; font-weight: 700; }
+  .modal .btns { display: flex; gap: 10px; justify-content: center; }
+  .btn.danger { background: var(--out); color: #fff; }
+
+  @media print {
+    header .head-tools, #entry, #settings, .filters, .ops, .period select, .btn { display: none !important; }
+    header { border-radius: 0; padding: 10px 0; background: none; }
+    main { margin-top: 0; }
+    .card { box-shadow: none; border: 1px solid #ddd; break-inside: avoid; }
+    body { background: #fff; }
+    table { min-width: 0; font-size: 10pt; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap brand">
+    <!-- がま口のマスコット -->
+    <svg viewBox="0 0 64 64" aria-hidden="true">
+      <circle cx="24" cy="10" r="5" fill="#f2a516" stroke="#8a5a00" stroke-width="2"/>
+      <circle cx="40" cy="10" r="5" fill="#f2a516" stroke="#8a5a00" stroke-width="2"/>
+      <path d="M10 26 Q32 10 54 26 L56 50 Q32 62 8 50 Z" fill="#ff8a6b" stroke="#8a3a22" stroke-width="2.5" stroke-linejoin="round"/>
+      <path d="M10 26 Q32 18 54 26" fill="none" stroke="#f2a516" stroke-width="5" stroke-linecap="round"/>
+      <circle cx="24" cy="38" r="3" fill="#3a3226"/>
+      <circle cx="40" cy="38" r="3" fill="#3a3226"/>
+      <circle cx="18" cy="44" r="3" fill="#ffb3a3"/>
+      <circle cx="46" cy="44" r="3" fill="#ffb3a3"/>
+      <path d="M27 45 Q32 50 37 45" fill="none" stroke="#3a3226" stroke-width="2.5" stroke-linecap="round"/>
+    </svg>
+    <div>
+      <h1>まるみえ活動資金</h1>
+      <p>みんなのお金、まるっと見える化。地域の活動をもっと気持ちよく。</p>
+    </div>
+    <div class="head-tools">
+      <button class="btn small" type="button" id="xlsxBtn">📗 Excelで保存</button>
+      <button class="btn small" type="button" id="csvBtn">📄 CSV</button>
+      <button class="btn small" type="button" onclick="window.print()">🖨 印刷</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- 合計 -->
+  <section class="card" id="summary">
+    <h2><span class="emoji">💰</span>いまのお財布</h2>
+    <div class="period">
+      <label for="period">期間</label>
+      <select id="period"></select>
+    </div>
+    <div class="totals">
+      <div class="total in"><div class="lbl">⬆ 収入計</div><div class="num" id="sumIn">0円</div><div class="sub" id="cntIn"></div></div>
+      <div class="total out"><div class="lbl">⬇ 支出計</div><div class="num" id="sumOut">0円</div><div class="sub" id="cntOut"></div></div>
+      <div class="total bal" id="balBox"><div class="lbl">🐷 残金</div><div class="num" id="sumBal">0円</div><div class="sub">収入計 − 支出計</div><div class="bal-note" id="balNote" hidden></div></div>
+    </div>
+    <div class="meter">
+      <div class="bar"><span id="meterBar" style="width:0%"></span></div>
+      <div class="cap" id="meterCap"></div>
+    </div>
+    <div class="cheer" id="cheer"></div>
+  </section>
+
+  <!-- 入力 -->
+  <section class="card" id="entry">
+    <h2><span class="emoji">✏️</span><span id="formTitle">お金の動きを記録する</span></h2>
+    <div class="editing-note" id="editingNote" hidden>✏️ 記録を修正しています。終わったら「この内容で更新」を押してね。</div>
+    <div class="kind" role="group" aria-label="収入か支出か">
+      <button type="button" class="in" data-kind="in" aria-pressed="true">⬆ 収入</button>
+      <button type="button" class="out" data-kind="out" aria-pressed="false">⬇ 支出</button>
+    </div>
+    <form id="form" autocomplete="off">
+      <div class="form">
+        <div class="field"><label for="f-date">年月日<span class="req">*</span></label><input type="date" id="f-date" required></div>
+        <div class="field"><label for="f-subject">科目<span class="req">*</span></label><select id="f-subject" required></select></div>
+        <div class="field"><label for="f-amount">金額<span class="req">*</span></label><div class="yen"><input type="text" inputmode="numeric" id="f-amount" placeholder="0" required></div></div>
+        <div class="field"><label for="f-item">項目名<span class="req">*</span></label><input type="text" id="f-item" placeholder="例：夏祭り うちわ代" required></div>
+        <div class="field"><label for="f-project">事業名</label><select id="f-project"></select></div>
+        <div class="field"><label for="f-account">口座</label><select id="f-account"></select></div>
+        <div class="field"><label for="f-person">担当者</label><select id="f-person"></select></div>
+        <div class="field wide"><label for="f-memo">備考</label><input type="text" id="f-memo" placeholder="領収書番号、メモなど"></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn primary" type="submit" id="submitBtn">＋ 記録する</button>
+        <button class="btn" type="button" id="cancelEdit" hidden>やめる</button>
+        <span class="msg" id="formMsg"></span>
+      </div>
+    </form>
+  </section>
+
+  <!-- 内訳 -->
+  <section class="card">
+    <h2><span class="emoji">📊</span>なにに・どこで使った？
+      <span class="legend"><span><i style="background:var(--in)"></i>収入</span><span><i style="background:var(--out)"></i>支出</span></span>
+    </h2>
+    <div class="breakdowns">
+      <div><h3 style="margin:0 0 6px;font-size:.95rem">事業ごと</h3><div id="bdProject"></div></div>
+      <div><h3 style="margin:0 0 6px;font-size:.95rem">口座ごとの残金</h3><div id="bdAccount"></div></div>
+      <div><h3 style="margin:0 0 6px;font-size:.95rem">科目ごと</h3><div id="bdSubject"></div></div>
+    </div>
+  </section>
+
+  <!-- 月ごと -->
+  <section class="card monthly">
+    <h2><span class="emoji">📅</span>月ごとの収支 <span class="memo" id="monthlyCap"></span>
+      <span class="legend"><span><i style="background:var(--in)"></i>収入</span><span><i style="background:var(--out)"></i>支出</span></span>
+    </h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>月</th><th class="num">収入</th><th class="num">支出</th><th class="num">収支</th><th class="num">残金（累計）</th><th></th></tr></thead>
+        <tbody id="mRows"></tbody>
+        <tfoot id="mFoot"></tfoot>
+      </table>
+    </div>
+  </section>
+
+  <!-- 一覧 -->
+  <section class="card">
+    <h2><span class="emoji">📒</span>記録の一覧 <span class="memo" id="listCount"></span></h2>
+    <div class="filters">
+      <select id="flt-kind" aria-label="区分で絞り込み"><option value="">収入・支出すべて</option><option value="in">収入だけ</option><option value="out">支出だけ</option></select>
+      <select id="flt-project" aria-label="事業で絞り込み"></select>
+      <select id="flt-account" aria-label="口座で絞り込み"></select>
+      <select id="flt-person" aria-label="担当者で絞り込み"></select>
+      <input type="search" id="flt-q" placeholder="🔍 項目名・備考で探す">
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>年月日</th><th>区分</th><th>科目</th><th>項目名</th><th>事業名</th><th>口座</th><th>担当者</th>
+          <th class="num">収入</th><th class="num">支出</th><th class="num">残高</th><th>備考</th><th></th>
+        </tr></thead>
+        <tbody id="rows"></tbody>
+        <tfoot id="foot"></tfoot>
+      </table>
+    </div>
+  </section>
+
+  <!-- 設定 -->
+  <details class="card" id="settings">
+    <summary>⚙️ 選択肢の設定・データの保存</summary>
+    <div class="masters" id="masters"></div>
+    <div class="backup">
+      <p>データはこのブラウザの中に保存されています。別のパソコンに移すときや念のための控えに、バックアップを取っておくと安心です。</p>
+      <button class="btn small" type="button" id="exportBtn">💾 バックアップを保存</button>
+      <label class="btn small" style="display:inline-block">📂 バックアップから戻す<input type="file" id="importFile" accept=".json,application/json" hidden></label>
+      <button class="btn small" type="button" id="sampleBtn">🧪 サンプルを入れてみる</button>
+      <button class="btn small ghost" type="button" id="resetBtn">🗑 すべての記録を消す</button>
+    </div>
+  </details>
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="modal-bg" id="modal" hidden>
+  <div class="modal" role="dialog" aria-modal="true">
+    <p id="modalText"></p>
+    <div class="btns"><button class="btn" type="button" id="modalNo">やめる</button><button class="btn danger" type="button" id="modalYes">はい</button></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+const STORE_KEY = "marumie-katsudou-shikin-v1";
+
+const DEFAULT_MASTERS = {
+  subjectsIn: ["前年度繰越金", "会費", "補助金・助成金", "寄付金", "事業収入", "雑収入"],
+  subjectsOut: ["消耗品費", "会議費", "印刷製本費", "通信運搬費", "交通費", "謝礼", "保険料", "行事費", "備品費", "雑費"],
+  projects: ["共通（運営費）", "夏祭り", "防犯パトロール", "清掃活動", "敬老会"],
+  accounts: ["現金（手元）", "○○銀行 普通口座", "ゆうちょ銀行"],
+  persons: ["会計", "会長"],
+};
+// 収入では「未収」、支出では「未払」を口座として選べる（まだお金が動いていないもの）
+const PENDING = { in: "未収", out: "未払" };
+const isPending = (a) => a === PENDING.in || a === PENDING.out;
+
+const MASTER_LABELS = {
+  projects: ["🎪 事業名", "例：餅つき大会"],
+  accounts: ["🏦 口座", "例：□□信用金庫"],
+  persons: ["🙋 担当者", "例：山田さん"],
+  subjectsIn: ["⬆ 収入の科目", "例：協賛金"],
+  subjectsOut: ["⬇ 支出の科目", "例：燃料費"],
+};
+
+// ---------- データ ----------
+let state = load();
+let kind = "in";
+let editingId = null;
+
+function load() {
+  try {
+    const s = JSON.parse(localStorage.getItem(STORE_KEY));
+    if (s && Array.isArray(s.records)) return { masters: { ...structuredClone(DEFAULT_MASTERS), ...s.masters }, records: s.records };
+  } catch (e) {}
+  return { masters: structuredClone(DEFAULT_MASTERS), records: [] };
+}
+function save() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
+  catch (e) { toast("⚠ 保存できませんでした。バックアップを取ってください"); }
+}
+const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+// ---------- 便利関数 ----------
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const yen = (n) => (n < 0 ? "−" : "") + Math.abs(n).toLocaleString("ja-JP") + "円";
+const todayStr = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+const fiscalYear = (date) => { const [y, m] = date.split("-").map(Number); return m >= 4 ? y : y - 1; };
+const fmtDate = (d) => { const [y, m, dd] = d.split("-"); return `${y}/${Number(m)}/${Number(dd)}`; };
+const toNumber = (s) => Number(String(s).replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0)).replace(/[^\d]/g, "")) || 0;
+const byDate = (a, b) => a.date.localeCompare(b.date) || a.created - b.created;
+
+let toastTimer;
+function toast(msg) {
+  const t = $("toast");
+  t.textContent = msg; t.classList.add("show");
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("show"), 2400);
+}
+function ask(text) {
+  return new Promise((resolve) => {
+    $("modalText").textContent = text; $("modal").hidden = false;
+    const done = (v) => { $("modal").hidden = true; $("modalYes").onclick = $("modalNo").onclick = null; resolve(v); };
+    $("modalYes").onclick = () => done(true); $("modalNo").onclick = () => done(false);
+  });
+}
+
+// ---------- 期間 ----------
+function periodOptions() {
+  const years = [...new Set(state.records.map((r) => fiscalYear(r.date)))].sort((a, b) => b - a);
+  const cur = fiscalYear(todayStr());
+  if (!years.includes(cur)) years.unshift(cur);
+  const months = [...new Set(state.records.map((r) => r.date.slice(0, 7)))].sort().reverse();
+  const sel = $("period"), keep = sel.value || "fy:" + cur;
+  sel.innerHTML =
+    `<option value="all">すべての期間</option>` +
+    `<optgroup label="年度（4月〜翌3月）">${years.map((y) => `<option value="fy:${y}">${y}年度</option>`).join("")}</optgroup>` +
+    (months.length ? `<optgroup label="月ごと">${months.map((m) => `<option value="m:${m}">${m.replace("-", "年")}月</option>`).join("")}</optgroup>` : "");
+  sel.value = [...sel.options].some((o) => o.value === keep) ? keep : "fy:" + cur;
+}
+function inPeriod(r) {
+  const p = $("period").value;
+  if (!p || p === "all") return true;
+  if (p.startsWith("fy:")) return fiscalYear(r.date) === Number(p.slice(3));
+  return r.date.startsWith(p.slice(2));
+}
+
+// ---------- フォーム ----------
+function fillSelect(sel, list, { blank, keep = true } = {}) {
+  const prev = sel.value;
+  sel.innerHTML = (blank ? `<option value="">${blank}</option>` : "") + list.map((v) => `<option>${esc(v)}</option>`).join("");
+  if (keep && [...sel.options].some((o) => o.value === prev)) sel.value = prev;
+}
+function setKind(k) {
+  kind = k;
+  document.querySelectorAll(".kind button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.kind === k));
+  fillSelect($("f-subject"), k === "in" ? state.masters.subjectsIn : state.masters.subjectsOut);
+  $("f-item").placeholder = k === "in" ? "例：4月分 会費（30世帯）" : "例：夏祭り うちわ代";
+  fillSelect($("f-account"), [...state.masters.accounts, PENDING[k]]);
+}
+function refreshFormSelects() {
+  setKind(kind);
+  fillSelect($("f-project"), state.masters.projects, { blank: "（選ばない）" });
+  fillSelect($("f-person"), state.masters.persons, { blank: "（選ばない）" });
+  fillSelect($("flt-project"), state.masters.projects, { blank: "事業：すべて" });
+  fillSelect($("flt-account"), [...state.masters.accounts, PENDING.in, PENDING.out], { blank: "口座：すべて" });
+  fillSelect($("flt-person"), state.masters.persons, { blank: "担当者：すべて" });
+}
+function resetForm() {
+  editingId = null;
+  $("form").reset();
+  $("f-date").value = todayStr();
+  $("editingNote").hidden = true;
+  $("cancelEdit").hidden = true;
+  $("submitBtn").textContent = "＋ 記録する";
+  $("formTitle").textContent = "お金の動きを記録する";
+  refreshFormSelects();
+}
+function startEdit(id) {
+  const r = state.records.find((x) => x.id === id);
+  if (!r) return;
+  editingId = id;
+  setKind(r.kind);
+  // 消した選択肢でも編集できるように一時的に足す
+  const ensure = (sel, v) => { if (v && ![...sel.options].some((o) => o.value === v)) sel.insertAdjacentHTML("beforeend", `<option>${esc(v)}</option>`); sel.value = v || ""; };
+  $("f-date").value = r.date;
+  ensure($("f-subject"), r.subject);
+  $("f-amount").value = r.amount.toLocaleString("ja-JP");
+  $("f-item").value = r.item;
+  ensure($("f-project"), r.project);
+  ensure($("f-account"), r.account);
+  ensure($("f-person"), r.person);
+  $("f-memo").value = r.memo || "";
+  $("editingNote").hidden = false;
+  $("cancelEdit").hidden = false;
+  $("submitBtn").textContent = "✔ この内容で更新";
+  $("formTitle").textContent = "記録を修正する";
+  $("entry").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+$("form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const amount = toNumber($("f-amount").value);
+  if (amount <= 0) { $("f-amount").focus(); toast("金額を入れてね"); return; }
+  const rec = {
+    kind,
+    date: $("f-date").value,
+    subject: $("f-subject").value,
+    amount,
+    item: $("f-item").value.trim(),
+    project: $("f-project").value,
+    account: $("f-account").value,
+    person: $("f-person").value,
+    memo: $("f-memo").value.trim(),
+  };
+  if (editingId) {
+    const r = state.records.find((x) => x.id === editingId);
+    Object.assign(r, rec);
+    toast("✔ 記録を更新しました");
+  } else {
+    state.records.push({ id: newId(), created: Date.now(), ...rec });
+    toast(kind === "in" ? `⬆ 収入 ${yen(amount)} を記録しました` : `⬇ 支出 ${yen(amount)} を記録しました`);
+  }
+  save();
+  const keepDate = $("f-date").value, keepKind = kind;
+  resetForm();
+  $("f-date").value = keepDate; setKind(keepKind);
+  render();
+});
+$("f-amount").addEventListener("blur", (e) => { const n = toNumber(e.target.value); e.target.value = n ? n.toLocaleString("ja-JP") : ""; });
+$("f-amount").addEventListener("focus", (e) => { const n = toNumber(e.target.value); e.target.value = n || ""; });
+document.querySelectorAll(".kind button").forEach((b) => b.addEventListener("click", () => setKind(b.dataset.kind)));
+$("cancelEdit").addEventListener("click", resetForm);
+
+// ---------- 描画 ----------
+function breakdown(el, key, records, { balanceOnly = false } = {}) {
+  const map = new Map();
+  for (const r of records) {
+    const k = r[key] || "（未選択）";
+    const m = map.get(k) || { in: 0, out: 0 };
+    m[r.kind] += r.amount; map.set(k, m);
+  }
+  const rows = [...map.entries()].sort((a, b) => (b[1].in + b[1].out) - (a[1].in + a[1].out));
+  if (!rows.length) { el.innerHTML = `<div class="memo">まだ記録がありません</div>`; return; }
+  const max = Math.max(...rows.map(([, m]) => Math.max(m.in, m.out)), 1);
+  el.innerHTML = rows.map(([name, m]) => `
+    <div class="bd-row" title="${esc(name)}">
+      <span class="name">${esc(name)}</span>
+      <span class="bars">
+        ${m.in ? `<span class="b in" style="width:${(m.in / max) * 100}%"></span>` : ""}
+        ${m.out ? `<span class="b out" style="width:${(m.out / max) * 100}%"></span>` : ""}
+      </span>
+      <span class="v">${balanceOnly
+        ? `<b style="color:${m.in - m.out < 0 ? "var(--out)" : "var(--ink)"}">${yen(m.in - m.out)}</b>`
+        : `${m.in ? `<span class="i">+${m.in.toLocaleString()}</span><br>` : ""}${m.out ? `<span class="o">−${m.out.toLocaleString()}</span>` : ""}`}</span>
+    </div>`).join("");
+}
+
+function cheerText(inSum, outSum, n) {
+  if (!n) return "🐣 まだ記録がありません。上のフォームから、最初のお金の動きを記録してみましょう！";
+  const bal = inSum - outSum;
+  if (bal < 0) return "😣 支出が収入を上回っています。口座の残高や記録もれがないか、確認してみましょう。";
+  if (!inSum) return "🧾 支出だけの記録です。収入（会費・補助金など）も入れると残金が分かります。";
+  const rate = outSum / inSum;
+  if (rate >= 0.9) return "⚠ 予算のほとんどを使っています。これからの行事の分は残っていますか？";
+  if (rate >= 0.6) return "🙂 ちょうどよいペースで使えています。この調子で記録を続けましょう！";
+  return "🌱 お金にまだ余裕があります。みんなでやりたい活動を話し合ってみては？";
+}
+
+// ---------- 月ごとの収支 ----------
+// 年度・月を選んでいるときはその年度の4月〜3月、すべての期間なら記録のある最初の月〜最後の月
+function monthlyData() {
+  const p = $("period").value || "all";
+  const addMonth = (ym, n) => { const [y, m] = ym.split("-").map(Number); const d = new Date(y, m - 1 + n, 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; };
+  let months = [], caption;
+  if (p === "all") {
+    const yms = state.records.map((r) => r.date.slice(0, 7)).sort();
+    let ym = yms[0] || `${fiscalYear(todayStr())}-04`;
+    const last = yms[yms.length - 1] || addMonth(ym, 11);
+    while (ym <= last) { months.push(ym); ym = addMonth(ym, 1); }
+    caption = "すべての期間";
+  } else {
+    const fy = p.startsWith("fy:") ? Number(p.slice(3)) : fiscalYear(p.slice(2) + "-01");
+    for (let i = 0; i < 12; i++) months.push(addMonth(`${fy}-04`, i));
+    caption = `${fy}年度（4月〜翌3月）`;
+  }
+  const set = new Set(months);
+  const map = Object.fromEntries(months.map((m) => [m, { in: 0, out: 0, n: 0 }]));
+  for (const r of state.records) {
+    const ym = r.date.slice(0, 7);
+    if (set.has(ym)) { map[ym][r.kind] += r.amount; map[ym].n++; }
+  }
+  let run = 0;
+  const rows = months.map((ym) => { const m = map[ym]; run += m.in - m.out; return { ym, in: m.in, out: m.out, net: m.in - m.out, run, n: m.n }; });
+  const focus = p.startsWith("m:") ? p.slice(2) : todayStr().slice(0, 7);
+  return { rows, caption, focus };
+}
+const ymLabel = (ym) => { const [y, m] = ym.split("-"); return `${y}年${Number(m)}月`; };
+
+function renderMonthly() {
+  const { rows, caption, focus } = monthlyData();
+  $("monthlyCap").textContent = caption;
+  const max = Math.max(1, ...rows.map((r) => Math.max(r.in, r.out)));
+  $("mRows").innerHTML = rows.map((r) => `
+    <tr class="${r.ym === focus ? "now" : ""} ${r.n ? "" : "zero"}">
+      <td class="m">${ymLabel(r.ym)}</td>
+      <td class="num ${r.in ? "in" : ""}">${r.in ? r.in.toLocaleString() : "—"}</td>
+      <td class="num ${r.out ? "out" : ""}">${r.out ? r.out.toLocaleString() : "—"}</td>
+      <td class="num ${r.net > 0 ? "plus" : r.net < 0 ? "minus" : ""}">${r.n ? (r.net > 0 ? "+" : r.net < 0 ? "−" : "") + Math.abs(r.net).toLocaleString() : "—"}</td>
+      <td class="num" style="${r.run < 0 ? "color:var(--out);font-weight:800" : ""}">${r.run.toLocaleString()}</td>
+      <td><div class="mbar">${r.in ? `<span class="i" style="width:${(r.in / max) * 100}%"></span>` : ""}${r.out ? `<span class="o" style="width:${(r.out / max) * 100}%"></span>` : ""}</div></td>
+    </tr>`).join("");
+  const ti = rows.reduce((s, r) => s + r.in, 0), to = rows.reduce((s, r) => s + r.out, 0);
+  $("mFoot").innerHTML = `<tr><td>合計</td><td class="num in">${ti.toLocaleString()}</td><td class="num out">${to.toLocaleString()}</td><td class="num">${(ti - to).toLocaleString()}</td><td class="num">${(ti - to).toLocaleString()}</td><td></td></tr>`;
+}
+
+function render() {
+  periodOptions();
+  const recs = state.records.filter(inPeriod).sort(byDate);
+  const inSum = recs.filter((r) => r.kind === "in").reduce((s, r) => s + r.amount, 0);
+  const outSum = recs.filter((r) => r.kind === "out").reduce((s, r) => s + r.amount, 0);
+  const bal = inSum - outSum;
+
+  $("sumIn").textContent = yen(inSum);
+  $("sumOut").textContent = yen(outSum);
+  $("sumBal").textContent = yen(bal);
+  $("cntIn").textContent = `${recs.filter((r) => r.kind === "in").length}件`;
+  $("cntOut").textContent = `${recs.filter((r) => r.kind === "out").length}件`;
+  $("balBox").classList.toggle("minus", bal < 0);
+  const pendIn = recs.filter((r) => r.account === PENDING.in).reduce((s, r) => s + r.amount, 0);
+  const pendOut = recs.filter((r) => r.account === PENDING.out).reduce((s, r) => s + r.amount, 0);
+  $("balNote").hidden = !pendIn && !pendOut;
+  $("balNote").innerHTML = `うち 未収 ${yen(pendIn)}・未払 ${yen(pendOut)}<br>いま手元・口座にある額 <b>${yen(bal - pendIn + pendOut)}</b>`;
+  const rate = inSum ? Math.min(100, (outSum / inSum) * 100) : (outSum ? 100 : 0);
+  $("meterBar").style.width = rate + "%";
+  $("meterCap").textContent = inSum ? `収入のうち ${Math.round((outSum / inSum) * 100)}% を使いました` : "収入が記録されるとここに使った割合が出ます";
+  $("cheer").textContent = cheerText(inSum, outSum, recs.length);
+
+  breakdown($("bdProject"), "project", recs);
+  breakdown($("bdAccount"), "account", recs, { balanceOnly: true });
+  breakdown($("bdSubject"), "subject", recs);
+  renderMonthly();
+
+  // 一覧（残高は期間内の累計）
+  let run = 0;
+  const withRun = recs.map((r) => ({ ...r, run: (run += r.kind === "in" ? r.amount : -r.amount) }));
+  const fk = $("flt-kind").value, fp = $("flt-project").value, fa = $("flt-account").value, fpe = $("flt-person").value;
+  const q = $("flt-q").value.trim().toLowerCase();
+  const shown = withRun.filter((r) =>
+    (!fk || r.kind === fk) && (!fp || r.project === fp) && (!fa || r.account === fa) && (!fpe || r.person === fpe) &&
+    (!q || `${r.item} ${r.memo} ${r.subject}`.toLowerCase().includes(q))
+  ).reverse();
+
+  $("listCount").textContent = `${shown.length}件`;
+  if (!shown.length) {
+    $("rows").innerHTML = `<tr><td colspan="12" class="empty"><div class="big">📭</div>${state.records.length ? "この条件の記録はありません" : "まだ記録がありません。設定の「サンプルを入れてみる」で試すこともできます。"}</td></tr>`;
+    $("foot").innerHTML = "";
+  } else {
+    $("rows").innerHTML = shown.map((r) => `
+      <tr>
+        <td class="date">${fmtDate(r.date)}</td>
+        <td><span class="chip ${r.kind}">${r.kind === "in" ? "収入" : "支出"}</span></td>
+        <td>${esc(r.subject)}</td>
+        <td><b>${esc(r.item)}</b></td>
+        <td>${r.project ? `<span class="chip">${esc(r.project)}</span>` : ""}</td>
+        <td>${esc(r.account)}</td>
+        <td>${esc(r.person)}</td>
+        <td class="num ${r.kind === "in" ? "in" : ""}">${r.kind === "in" ? r.amount.toLocaleString() : ""}</td>
+        <td class="num ${r.kind === "out" ? "out" : ""}">${r.kind === "out" ? r.amount.toLocaleString() : ""}</td>
+        <td class="num">${r.run.toLocaleString()}</td>
+        <td class="memo">${esc(r.memo)}</td>
+        <td class="ops"><button class="btn small ghost" type="button" data-edit="${r.id}" title="修正">✏️</button><button class="btn small ghost" type="button" data-del="${r.id}" title="削除">🗑</button></td>
+      </tr>`).join("");
+    const si = shown.filter((r) => r.kind === "in").reduce((s, r) => s + r.amount, 0);
+    const so = shown.filter((r) => r.kind === "out").reduce((s, r) => s + r.amount, 0);
+    $("foot").innerHTML = `<tr><td colspan="7">表示中の合計</td><td class="num in">${si.toLocaleString()}</td><td class="num out">${so.toLocaleString()}</td><td class="num">${(si - so).toLocaleString()}</td><td colspan="2"></td></tr>`;
+  }
+  renderMasters();
+}
+
+$("rows").addEventListener("click", async (e) => {
+  const ed = e.target.closest("[data-edit]"), del = e.target.closest("[data-del]");
+  if (ed) startEdit(ed.dataset.edit);
+  if (del) {
+    const r = state.records.find((x) => x.id === del.dataset.del);
+    if (!r || !(await ask(`「${r.item}」（${yen(r.amount)}）を削除しますか？`))) return;
+    state.records = state.records.filter((x) => x.id !== r.id);
+    if (editingId === r.id) resetForm();
+    save(); render(); toast("🗑 削除しました");
+  }
+});
+["period", "flt-kind", "flt-project", "flt-account", "flt-person"].forEach((id) => $(id).addEventListener("change", render));
+$("flt-q").addEventListener("input", render);
+
+// ---------- 選択肢の設定 ----------
+function renderMasters() {
+  $("masters").innerHTML = Object.entries(MASTER_LABELS).map(([key, [label, ph]]) => `
+    <div class="master">
+      <h3>${label}</h3>
+      <ul>${state.masters[key].map((v, i) => `<li>${esc(v)}<button type="button" data-mkey="${key}" data-mi="${i}" aria-label="${esc(v)}を消す">×</button></li>`).join("")}</ul>
+      <form data-mkey="${key}"><input type="text" placeholder="${ph}" aria-label="${label}を追加"><button class="btn small primary" type="submit">追加</button></form>
+    </div>`).join("");
+}
+$("masters").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const key = e.target.dataset.mkey, input = e.target.querySelector("input");
+  const v = input.value.trim();
+  if (!v) return;
+  if (state.masters[key].includes(v)) { toast("もう登録されています"); return; }
+  state.masters[key].push(v);
+  save(); refreshFormSelects(); render();
+  toast(`「${v}」を追加しました`);
+  $("masters").querySelector(`form[data-mkey="${key}"] input`).focus();
+});
+$("masters").addEventListener("click", async (e) => {
+  const b = e.target.closest("button[data-mi]");
+  if (!b) return;
+  const key = b.dataset.mkey, v = state.masters[key][b.dataset.mi];
+  if (!(await ask(`選択肢「${v}」を消しますか？（これまでの記録はそのまま残ります）`))) return;
+  state.masters[key].splice(b.dataset.mi, 1);
+  save(); refreshFormSelects(); render();
+});
+
+// ---------- 保存・読み込み ----------
+function download(name, text, type) {
+  const url = URL.createObjectURL(new Blob([text], { type }));
+  const a = Object.assign(document.createElement("a"), { href: url, download: name });
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+$("csvBtn").addEventListener("click", () => {
+  const recs = state.records.filter(inPeriod).sort(byDate);
+  let run = 0;
+  const cell = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const lines = [["年月日", "区分", "科目", "項目名", "事業名", "口座", "担当者", "収入", "支出", "残高", "備考"].map(cell).join(",")];
+  for (const r of recs) {
+    run += r.kind === "in" ? r.amount : -r.amount;
+    lines.push([r.date, r.kind === "in" ? "収入" : "支出", r.subject, r.item, r.project, r.account, r.person,
+      r.kind === "in" ? r.amount : "", r.kind === "out" ? r.amount : "", run, r.memo].map(cell).join(","));
+  }
+  const label = $("period").selectedOptions[0]?.textContent || "全期間";
+  download(`活動資金_${label}.csv`, "﻿" + lines.join("\r\n"), "text/csv");
+  toast("📄 CSVを保存しました（Excelで開けます）");
+});
+function periodLabel() { return $("period").selectedOptions[0]?.textContent || "すべての期間"; }
+function sumBy(recs, key) {
+  const map = new Map();
+  for (const r of recs) { const k = r[key] || "（未選択）"; const m = map.get(k) || { in: 0, out: 0 }; m[r.kind] += r.amount; map.set(k, m); }
+  return [...map.entries()].map(([k, m]) => [k, m.in, m.out, m.in - m.out]);
+}
+function sheet(aoa, widths) {
+  const ws = XLSX.utils.aoa_to_sheet(aoa, { cellDates: true, dateNF: "yyyy/m/d" });
+  for (const ref in ws) {
+    const c = ws[ref];
+    if (ref[0] !== "!" && c.t === "n" && !c.z) c.z = "#,##0";
+  }
+  ws["!cols"] = widths.map((w) => ({ wch: w }));
+  return ws;
+}
+$("xlsxBtn").addEventListener("click", () => {
+  if (typeof XLSX === "undefined") { toast("⚠ Excel出力の部品を読み込めませんでした（インターネット接続を確認してね）"); return; }
+  const recs = state.records.filter(inPeriod).sort(byDate);
+  const label = periodLabel();
+  const inSum = recs.filter((r) => r.kind === "in").reduce((s, r) => s + r.amount, 0);
+  const outSum = recs.filter((r) => r.kind === "out").reduce((s, r) => s + r.amount, 0);
+  const pendIn = recs.filter((r) => r.account === PENDING.in).reduce((s, r) => s + r.amount, 0);
+  const pendOut = recs.filter((r) => r.account === PENDING.out).reduce((s, r) => s + r.amount, 0);
+  const head = ["", "収入", "支出", "差引"];
+
+  // 1. まとめ
+  const summary = [
+    ["まるみえ活動資金　収支報告"], ["期間", label], ["出力日", todayStr().replaceAll("-", "/")], [],
+    ["収入計", inSum], ["支出計", outSum], ["残金（収入計−支出計）", inSum - outSum],
+    ["　うち未収", pendIn], ["　うち未払", pendOut], ["手元・口座にある額", inSum - outSum - pendIn + pendOut], [],
+    ["■ 事業ごと", ...head.slice(1)], ...sumBy(recs, "project"), [],
+    ["■ 口座ごと", ...head.slice(1)], ...sumBy(recs, "account"), [],
+    ["■ 科目ごと", ...head.slice(1)], ...sumBy(recs, "subject"),
+  ];
+
+  // 2. 月ごと
+  const md = monthlyData();
+  const monthly = [["月ごとの収支", md.caption], [], ["月", "収入", "支出", "収支", "残金（累計）", "件数"],
+    ...md.rows.map((r) => [ymLabel(r.ym), r.in, r.out, r.net, r.run, r.n])];
+  const ti = md.rows.reduce((s, r) => s + r.in, 0), to = md.rows.reduce((s, r) => s + r.out, 0);
+  monthly.push(["合計", ti, to, ti - to, ti - to, md.rows.reduce((s, r) => s + r.n, 0)]);
+
+  // 3. 記録一覧
+  let run = 0;
+  const list = [["年月日", "区分", "科目", "項目名", "事業名", "口座", "担当者", "収入", "支出", "残高", "備考"],
+    ...recs.map((r) => {
+      run += r.kind === "in" ? r.amount : -r.amount;
+      const [y, m, d] = r.date.split("-").map(Number);
+      return [new Date(y, m - 1, d), r.kind === "in" ? "収入" : "支出", r.subject, r.item, r.project, r.account, r.person,
+        r.kind === "in" ? r.amount : null, r.kind === "out" ? r.amount : null, run, r.memo];
+    })];
+  list.push(["合計", "", "", "", "", "", "", inSum, outSum, inSum - outSum, ""]);
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, sheet(summary, [24, 14, 14, 14]), "まとめ");
+  XLSX.utils.book_append_sheet(wb, sheet(monthly, [14, 12, 12, 12, 14, 8]), "月ごとの収支");
+  XLSX.utils.book_append_sheet(wb, sheet(list, [12, 6, 14, 28, 16, 18, 10, 11, 11, 12, 24]), "記録一覧");
+  XLSX.writeFile(wb, `活動資金_${label}.xlsx`);
+  toast("📗 Excelファイルを保存しました");
+});
+$("exportBtn").addEventListener("click", () => {
+  download(`まるみえ活動資金_バックアップ_${todayStr()}.json`, JSON.stringify({ app: "marumie", version: 1, ...state }, null, 2), "application/json");
+  toast("💾 バックアップを保存しました");
+});
+$("importFile").addEventListener("change", async (e) => {
+  const file = e.target.files[0]; e.target.value = "";
+  if (!file) return;
+  try {
+    const d = JSON.parse(await file.text());
+    if (!Array.isArray(d.records)) throw new Error("形式が違います");
+    if (!(await ask(`バックアップ（${d.records.length}件）で今のデータを置き換えますか？`))) return;
+    state = { masters: { ...structuredClone(DEFAULT_MASTERS), ...d.masters }, records: d.records };
+    save(); resetForm(); render(); toast("📂 バックアップから戻しました");
+  } catch (err) { toast("⚠ 読み込めませんでした：" + err.message); }
+});
+$("resetBtn").addEventListener("click", async () => {
+  if (!(await ask("すべての記録を消します。元に戻せません。本当に消しますか？"))) return;
+  state.records = []; save(); resetForm(); render(); toast("🗑 すべての記録を消しました");
+});
+$("sampleBtn").addEventListener("click", async () => {
+  if (state.records.length && !(await ask("今の記録にサンプルを追加しますか？"))) return;
+  const fy = fiscalYear(todayStr());
+  const S = [
+    ["in", `${fy}-04-01`, "前年度繰越金", 85000, "前年度からの繰越", "共通（運営費）", "○○銀行 普通口座", "会計", ""],
+    ["in", `${fy}-04-20`, "会費", 120000, "年会費（60世帯 × 2,000円）", "共通（運営費）", "現金（手元）", "会計", "未納3世帯"],
+    ["in", `${fy}-05-15`, "補助金・助成金", 50000, "市の地域活動補助金", "共通（運営費）", "○○銀行 普通口座", "会長", "実績報告は3月まで"],
+    ["out", `${fy}-05-10`, "会議費", 2400, "総会 お茶・お菓子", "共通（運営費）", "現金（手元）", "会計", "領収書 No.1"],
+    ["out", `${fy}-06-02`, "消耗品費", 3980, "ゴミ袋・軍手", "清掃活動", "現金（手元）", "会計", "領収書 No.2"],
+    ["out", `${fy}-07-12`, "行事費", 18500, "夏祭り 景品", "夏祭り", "○○銀行 普通口座", "会長", "領収書 No.3"],
+    ["in", `${fy}-07-27`, "事業収入", 32600, "夏祭り 模擬店売上", "夏祭り", "現金（手元）", "会計", ""],
+    ["out", `${fy}-07-27`, "行事費", 21300, "夏祭り 食材・氷", "夏祭り", "現金（手元）", "会計", "領収書 No.4〜6"],
+    ["out", `${fy}-08-05`, "保険料", 6000, "行事保険", "防犯パトロール", "○○銀行 普通口座", "会計", ""],
+    ["out", `${fy}-09-15`, "謝礼", 10000, "敬老会 演芸の方へ", "敬老会", "現金（手元）", "会長", ""],
+    ["out", `${fy}-09-28`, "印刷製本費", 4500, "会報 印刷代", "共通（運営費）", "未払", "会計", "請求書受取済・10月払い"],
+    ["in", `${fy}-09-30`, "補助金・助成金", 30000, "市の補助金（後期分）", "共通（運営費）", "未収", "会長", "10月入金予定"],
+  ];
+  for (const s of S) {
+    const [k, date, subject, amount, item, project, account, person, memo] = s;
+    state.records.push({ id: newId(), created: Date.now(), kind: k, date, subject, amount, item, project, account, person, memo });
+  }
+  save(); render(); toast("🧪 サンプルを入れました");
+});
+
+// ---------- はじめに ----------
+resetForm();
+render();
+</script>
+</body>
+</html>
