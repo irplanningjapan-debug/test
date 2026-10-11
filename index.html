@@ -188,6 +188,21 @@
   footer { text-align: center; font-size: .8rem; color: var(--muted); padding: 0 16px 32px; }
   footer a { color: var(--sea); }
 
+  /* ===== ご意見掲示板（モック） ===== */
+  .board { max-width: 640px; margin: 0 auto 24px; text-align: left; background: var(--card); border: 2px solid var(--line); border-radius: 18px; padding: 16px; font-size: .9rem; color: var(--ink); }
+  .board h3 { margin: 0 0 10px; font-size: 1rem; color: var(--sea-deep); }
+  .board form { display: grid; gap: 8px; }
+  .board input, .board textarea { font: inherit; width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: #fffdf8; }
+  .board textarea { min-height: 70px; resize: vertical; }
+  .board button:disabled { opacity: .6; cursor: default; }
+  .board button { justify-self: end; font: inherit; font-weight: 700; padding: 6px 18px; border-radius: 999px; border: 0; background: var(--mango); color: #fff; cursor: pointer; }
+  .board ul { list-style: none; margin: 14px 0 0; padding: 0; }
+  .board li { padding: 8px 0; border-top: 1px dashed var(--line); }
+  .board .meta { font-size: .75rem; color: var(--muted); }
+  .board .meta b { color: var(--sea); margin-right: 6px; }
+  .board .msg { margin: 2px 0 0; white-space: pre-wrap; word-break: break-word; }
+  .board .empty { color: var(--muted); }
+
   @media (max-width: 520px) {
     .today { grid-template-columns: minmax(0, 1fr); text-align: center; padding: 16px; }
     .today .icon { margin: 0 auto; width: 100px; height: 100px; }
@@ -272,10 +287,20 @@
 </main>
 
 <footer>
+  <div class="board">
+    <h3>💬 ご意見掲示板</h3>
+    <form id="board-form">
+      <input id="board-name" type="text" placeholder="ニックネーム" maxlength="30" required>
+      <textarea id="board-text" placeholder="ご意見をどうぞ" maxlength="500" required></textarea>
+      <button type="submit">書き込む</button>
+    </form>
+    <ul id="board-list"></ul>
+  </div>
   出典：<a href="https://www.jma.go.jp/bosai/forecast/#area_type=offices&area_code=450000" target="_blank" rel="noopener">気象庁ホームページ（宮崎地方気象台）</a>のデータを加工して表示しています。<br>
   30分ごとに自動で更新します。
 </footer>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
 <script>
 const FORECAST_URL = "https://www.jma.go.jp/bosai/forecast/data/forecast/450000.json";
 const OVERVIEW_URL = "https://www.jma.go.jp/bosai/forecast/data/overview_forecast/450000.json";
@@ -597,6 +622,69 @@ $("tabs").addEventListener("click", (e) => {
 renderTabs();
 load();
 setInterval(load, 30 * 60 * 1000);
+
+// ===== ご意見掲示板（Supabase の board_posts テーブルに保存） =====
+const SUPABASE_URL = "https://xiropzuybedrwwhkjjww.supabase.co";
+const SUPABASE_KEY = "sb_publishable_gEV9x6pdDz3cgAYnC5ueuw_WQPjkH7D";
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const boardList = document.getElementById("board-list");
+function boardMessage(text) {
+  boardList.innerHTML = "";
+  const li = document.createElement("li");
+  li.className = "empty";
+  li.textContent = text;
+  boardList.appendChild(li);
+}
+async function renderBoard() {
+  const { data: posts, error } = await db
+    .from("board_posts")
+    .select("id, nickname, message, created_at")
+    .order("created_at", { ascending: false })
+    .limit(50);
+  if (error) {
+    console.error(error);
+    boardMessage("書き込みを読み込めませんでした。");
+    return;
+  }
+  if (!posts.length) {
+    boardMessage("まだ書き込みはありません。");
+    return;
+  }
+  boardList.innerHTML = "";
+  posts.forEach(p => {
+    const li = document.createElement("li");
+    const meta = document.createElement("div");
+    meta.className = "meta";
+    const name = document.createElement("b");
+    name.textContent = p.nickname;
+    meta.append(name, new Date(p.created_at).toLocaleString("ja-JP"));
+    const msg = document.createElement("p");
+    msg.className = "msg";
+    msg.textContent = p.message;
+    li.append(meta, msg);
+    boardList.appendChild(li);
+  });
+}
+document.getElementById("board-form").addEventListener("submit", async e => {
+  e.preventDefault();
+  const nickname = document.getElementById("board-name").value.trim();
+  const textEl = document.getElementById("board-text");
+  const message = textEl.value.trim();
+  if (!nickname || !message) return;
+  const button = e.target.querySelector("button");
+  button.disabled = true;
+  const { error } = await db.from("board_posts").insert({ nickname, message });
+  button.disabled = false;
+  if (error) {
+    console.error(error);
+    alert("書き込みに失敗しました。時間をおいてもう一度お試しください。");
+    return;
+  }
+  textEl.value = "";
+  renderBoard();
+});
+renderBoard();
 </script>
 </body>
 </html>
