@@ -172,6 +172,24 @@
   .bal-note { font-size: .8rem; color: var(--muted); margin-top: 4px; line-height: 1.5; }
   .bal-note b { color: var(--ink); }
 
+  /* ===== 事業タブ ===== */
+  .tabs { display: flex; gap: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 2px 2px 10px; margin-bottom: 10px; scrollbar-width: thin; }
+  .tabs a {
+    flex: none; text-decoration: none; color: var(--ink); background: #fff; font-weight: 700; font-size: .9rem;
+    border-radius: 999px; padding: 8px 16px; box-shadow: 0 3px 0 var(--line); white-space: nowrap;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .tabs a:hover { background: #fffaf2; }
+  .tabs a[aria-current="page"] { background: var(--accent); color: #fff; box-shadow: 0 3px 0 #3f6fd0; }
+  .tabs a .n { font-size: .75rem; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--muted); }
+  .tabs a .n.minus { color: var(--out); }
+  .tabs a[aria-current="page"] .n { color: #fff; opacity: .85; }
+  .tabs a.orphan { opacity: .7; }
+  .proj-note { background: var(--accent-soft); color: #2f5fc4; border-radius: 12px; padding: 6px 12px; font-size: .85rem; font-weight: 700; margin-bottom: 12px; }
+  .bd-row.link { cursor: pointer; border-radius: 10px; }
+  .bd-row.link:hover { background: #fffaf2; }
+  .bd-row.link .name { color: #2f5fc4; text-decoration: underline; text-decoration-color: #c7d7fb; }
+
   .toast {
     position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%) translateY(20px);
     background: var(--ink); color: #fff; padding: 10px 18px; border-radius: 999px; font-weight: 700; font-size: .9rem;
@@ -186,7 +204,7 @@
   .btn.danger { background: var(--out); color: #fff; }
 
   @media print {
-    header .head-tools, #entry, #settings, .filters, .ops, .period select, .btn { display: none !important; }
+    header .head-tools, .tabs, #entry, #settings, .filters, .ops, .period select, .btn { display: none !important; }
     header { border-radius: 0; padding: 10px 0; background: none; }
     main { margin-top: 0; }
     .card { box-shadow: none; border: 1px solid #ddd; break-inside: avoid; }
@@ -225,9 +243,13 @@
 
 <main class="wrap">
 
+  <!-- 事業ごとのタブ（全体＝トップページ） -->
+  <nav class="tabs" id="tabs" aria-label="全体・事業ごとの切り替え"></nav>
+
   <!-- 合計 -->
   <section class="card" id="summary">
-    <h2><span class="emoji">💰</span>いまのお財布</h2>
+    <h2><span class="emoji">💰</span><span id="summaryTitle">いまのお財布</span></h2>
+    <div class="proj-note" id="projNote" hidden></div>
     <div class="period">
       <label for="period">期間</label>
       <select id="period"></select>
@@ -277,7 +299,7 @@
       <span class="legend"><span><i style="background:var(--in)"></i>収入</span><span><i style="background:var(--out)"></i>支出</span></span>
     </h2>
     <div class="breakdowns">
-      <div><h3 style="margin:0 0 6px;font-size:.95rem">事業ごと</h3><div id="bdProject"></div></div>
+      <div id="bdProjectBox"><h3 style="margin:0 0 6px;font-size:.95rem">事業ごと <span class="memo">（押すと事業ごとのページへ）</span></h3><div id="bdProject"></div></div>
       <div><h3 style="margin:0 0 6px;font-size:.95rem">口座ごとの残金</h3><div id="bdAccount"></div></div>
       <div><h3 style="margin:0 0 6px;font-size:.95rem">科目ごと</h3><div id="bdSubject"></div></div>
     </div>
@@ -368,6 +390,7 @@ const MASTER_LABELS = {
 let state = load();
 let kind = "in";
 let editingId = null;
+let currentProject = null; // null＝全体（トップページ）、文字列＝その事業だけのページ
 
 function load() {
   try {
@@ -426,6 +449,51 @@ function inPeriod(r) {
   return r.date.startsWith(p.slice(2));
 }
 
+// ---------- 事業ごとのページ ----------
+// トップページも事業ページも同じ記録（state.records）を見ているので、どちらで入力しても両方に反映される
+const inProject = (r) => currentProject === null || (r.project || "") === currentProject;
+function projectTabs() {
+  const list = [...state.masters.projects];
+  for (const r of state.records) if (r.project && !list.includes(r.project)) list.push(r.project);
+  if (currentProject !== null && !list.includes(currentProject)) list.push(currentProject);
+  return list;
+}
+const projectHash = (name) => name === null ? "#" : "#p=" + encodeURIComponent(name);
+function projectFromHash() {
+  const m = location.hash.match(/^#p=(.*)$/);
+  if (!m) return null;
+  try { return decodeURIComponent(m[1]); } catch (e) { return null; }
+}
+function renderTabs() {
+  const recs = state.records.filter(inPeriod);
+  const net = (name) => recs.filter((r) => name === null || (r.project || "") === name).reduce((s, r) => s + (r.kind === "in" ? r.amount : -r.amount), 0);
+  const tab = (name, label, cls = "") => {
+    const n = net(name);
+    return `<a href="${projectHash(name)}" class="${cls}" ${name === currentProject ? 'aria-current="page"' : ""} title="${esc(label)}（期間内の収支 ${yen(n)}）">${esc(label)}<span class="n ${n < 0 ? "minus" : ""}">${yen(n)}</span></a>`;
+  };
+  $("tabs").innerHTML = tab(null, "🏠 全体") +
+    projectTabs().map((p) => tab(p, p, state.masters.projects.includes(p) ? "" : "orphan")).join("");
+  $("tabs").querySelector('[aria-current="page"]')?.scrollIntoView({ block: "nearest", inline: "nearest" });
+}
+function applyProjectView() {
+  const p = currentProject;
+  document.title = p === null ? "まるみえ活動資金" : `${p}｜まるみえ活動資金`;
+  $("summaryTitle").textContent = p === null ? "いまのお財布" : `「${p}」の収支`;
+  $("projNote").hidden = p === null;
+  $("projNote").textContent = p === null ? "" : `🎪 事業「${p}」の記録だけを表示しています。ここで記録した内容は「🏠 全体」にも反映されます。`;
+  $("bdProjectBox").hidden = p !== null;
+  $("flt-project").hidden = p !== null;
+  if (p !== null) $("flt-project").value = "";
+}
+function openProject(name, { scroll = true } = {}) {
+  currentProject = name;
+  applyProjectView();
+  resetForm();
+  render();
+  if (scroll) window.scrollTo({ top: 0, behavior: "smooth" });
+}
+window.addEventListener("hashchange", () => openProject(projectFromHash()));
+
 // ---------- フォーム ----------
 function fillSelect(sel, list, { blank, keep = true } = {}) {
   const prev = sel.value;
@@ -454,8 +522,13 @@ function resetForm() {
   $("editingNote").hidden = true;
   $("cancelEdit").hidden = true;
   $("submitBtn").textContent = "＋ 記録する";
-  $("formTitle").textContent = "お金の動きを記録する";
+  $("formTitle").textContent = currentProject === null ? "お金の動きを記録する" : `「${currentProject}」のお金の動きを記録する`;
   refreshFormSelects();
+  if (currentProject !== null) {
+    const sel = $("f-project");
+    if (![...sel.options].some((o) => o.value === currentProject)) sel.insertAdjacentHTML("beforeend", `<option>${esc(currentProject)}</option>`);
+    sel.value = currentProject;
+  }
 }
 function startEdit(id) {
   const r = state.records.find((x) => x.id === id);
@@ -503,6 +576,7 @@ $("form").addEventListener("submit", (e) => {
     toast(kind === "in" ? `⬆ 収入 ${yen(amount)} を記録しました` : `⬇ 支出 ${yen(amount)} を記録しました`);
   }
   save();
+  if (currentProject !== null && rec.project !== currentProject) toast(`✔ 「${rec.project || "事業なし"}」の記録として保存しました（全体ページで見られます）`);
   const keepDate = $("f-date").value, keepKind = kind;
   resetForm();
   $("f-date").value = keepDate; setKind(keepKind);
@@ -514,7 +588,7 @@ document.querySelectorAll(".kind button").forEach((b) => b.addEventListener("cli
 $("cancelEdit").addEventListener("click", resetForm);
 
 // ---------- 描画 ----------
-function breakdown(el, key, records, { balanceOnly = false } = {}) {
+function breakdown(el, key, records, { balanceOnly = false, link = false } = {}) {
   const map = new Map();
   for (const r of records) {
     const k = r[key] || "（未選択）";
@@ -525,7 +599,7 @@ function breakdown(el, key, records, { balanceOnly = false } = {}) {
   if (!rows.length) { el.innerHTML = `<div class="memo">まだ記録がありません</div>`; return; }
   const max = Math.max(...rows.map(([, m]) => Math.max(m.in, m.out)), 1);
   el.innerHTML = rows.map(([name, m]) => `
-    <div class="bd-row" title="${esc(name)}">
+    <div class="bd-row ${link && name !== "（未選択）" ? "link" : ""}" title="${esc(name)}" ${link && name !== "（未選択）" ? `data-project="${esc(name)}"` : ""}>
       <span class="name">${esc(name)}</span>
       <span class="bars">
         ${m.in ? `<span class="b in" style="width:${(m.in / max) * 100}%"></span>` : ""}
@@ -536,6 +610,11 @@ function breakdown(el, key, records, { balanceOnly = false } = {}) {
         : `${m.in ? `<span class="i">+${m.in.toLocaleString()}</span><br>` : ""}${m.out ? `<span class="o">−${m.out.toLocaleString()}</span>` : ""}`}</span>
     </div>`).join("");
 }
+
+$("bdProject").addEventListener("click", (e) => {
+  const row = e.target.closest("[data-project]");
+  if (row) location.hash = projectHash(row.dataset.project);
+});
 
 function cheerText(inSum, outSum, n) {
   if (!n) return "🐣 まだ記録がありません。上のフォームから、最初のお金の動きを記録してみましょう！";
@@ -552,10 +631,11 @@ function cheerText(inSum, outSum, n) {
 // 年度・月を選んでいるときはその年度の4月〜3月、すべての期間なら記録のある最初の月〜最後の月
 function monthlyData() {
   const p = $("period").value || "all";
+  const all = state.records.filter(inProject);
   const addMonth = (ym, n) => { const [y, m] = ym.split("-").map(Number); const d = new Date(y, m - 1 + n, 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; };
   let months = [], caption;
   if (p === "all") {
-    const yms = state.records.map((r) => r.date.slice(0, 7)).sort();
+    const yms = all.map((r) => r.date.slice(0, 7)).sort();
     let ym = yms[0] || `${fiscalYear(todayStr())}-04`;
     const last = yms[yms.length - 1] || addMonth(ym, 11);
     while (ym <= last) { months.push(ym); ym = addMonth(ym, 1); }
@@ -567,7 +647,7 @@ function monthlyData() {
   }
   const set = new Set(months);
   const map = Object.fromEntries(months.map((m) => [m, { in: 0, out: 0, n: 0 }]));
-  for (const r of state.records) {
+  for (const r of all) {
     const ym = r.date.slice(0, 7);
     if (set.has(ym)) { map[ym][r.kind] += r.amount; map[ym].n++; }
   }
@@ -597,7 +677,8 @@ function renderMonthly() {
 
 function render() {
   periodOptions();
-  const recs = state.records.filter(inPeriod).sort(byDate);
+  renderTabs();
+  const recs = state.records.filter((r) => inPeriod(r) && inProject(r)).sort(byDate);
   const inSum = recs.filter((r) => r.kind === "in").reduce((s, r) => s + r.amount, 0);
   const outSum = recs.filter((r) => r.kind === "out").reduce((s, r) => s + r.amount, 0);
   const bal = inSum - outSum;
@@ -617,7 +698,7 @@ function render() {
   $("meterCap").textContent = inSum ? `収入のうち ${Math.round((outSum / inSum) * 100)}% を使いました` : "収入が記録されるとここに使った割合が出ます";
   $("cheer").textContent = cheerText(inSum, outSum, recs.length);
 
-  breakdown($("bdProject"), "project", recs);
+  breakdown($("bdProject"), "project", recs, { link: true });
   breakdown($("bdAccount"), "account", recs, { balanceOnly: true });
   breakdown($("bdSubject"), "subject", recs);
   renderMonthly();
@@ -628,13 +709,13 @@ function render() {
   const fk = $("flt-kind").value, fp = $("flt-project").value, fa = $("flt-account").value, fpe = $("flt-person").value;
   const q = $("flt-q").value.trim().toLowerCase();
   const shown = withRun.filter((r) =>
-    (!fk || r.kind === fk) && (!fp || r.project === fp) && (!fa || r.account === fa) && (!fpe || r.person === fpe) &&
+    (!fk || r.kind === fk) && (!fp || currentProject !== null || r.project === fp) && (!fa || r.account === fa) && (!fpe || r.person === fpe) &&
     (!q || `${r.item} ${r.memo} ${r.subject}`.toLowerCase().includes(q))
   ).reverse();
 
   $("listCount").textContent = `${shown.length}件`;
   if (!shown.length) {
-    $("rows").innerHTML = `<tr><td colspan="12" class="empty"><div class="big">📭</div>${state.records.length ? "この条件の記録はありません" : "まだ記録がありません。設定の「サンプルを入れてみる」で試すこともできます。"}</td></tr>`;
+    $("rows").innerHTML = `<tr><td colspan="12" class="empty"><div class="big">📭</div>${state.records.length ? (currentProject !== null && !recs.length ? `「${esc(currentProject)}」の記録はまだありません。上のフォームから記録してみましょう！` : "この条件の記録はありません") : "まだ記録がありません。設定の「サンプルを入れてみる」で試すこともできます。"}</td></tr>`;
     $("foot").innerHTML = "";
   } else {
     $("rows").innerHTML = shown.map((r) => `
@@ -710,7 +791,7 @@ function download(name, text, type) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 $("csvBtn").addEventListener("click", () => {
-  const recs = state.records.filter(inPeriod).sort(byDate);
+  const recs = state.records.filter((r) => inPeriod(r) && inProject(r)).sort(byDate);
   let run = 0;
   const cell = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
   const lines = [["年月日", "区分", "科目", "項目名", "事業名", "口座", "担当者", "収入", "支出", "残高", "備考"].map(cell).join(",")];
@@ -720,9 +801,10 @@ $("csvBtn").addEventListener("click", () => {
       r.kind === "in" ? r.amount : "", r.kind === "out" ? r.amount : "", run, r.memo].map(cell).join(","));
   }
   const label = $("period").selectedOptions[0]?.textContent || "全期間";
-  download(`活動資金_${label}.csv`, "﻿" + lines.join("\r\n"), "text/csv");
+  download(`活動資金_${fileProjectLabel()}${label}.csv`, "﻿" + lines.join("\r\n"), "text/csv");
   toast("📄 CSVを保存しました（Excelで開けます）");
 });
+const fileProjectLabel = () => currentProject === null ? "" : currentProject.replace(/[\\/:*?"<>|]/g, "_") + "_";
 function periodLabel() { return $("period").selectedOptions[0]?.textContent || "すべての期間"; }
 function sumBy(recs, key) {
   const map = new Map();
@@ -740,7 +822,7 @@ function sheet(aoa, widths) {
 }
 $("xlsxBtn").addEventListener("click", () => {
   if (typeof XLSX === "undefined") { toast("⚠ Excel出力の部品を読み込めませんでした（インターネット接続を確認してね）"); return; }
-  const recs = state.records.filter(inPeriod).sort(byDate);
+  const recs = state.records.filter((r) => inPeriod(r) && inProject(r)).sort(byDate);
   const label = periodLabel();
   const inSum = recs.filter((r) => r.kind === "in").reduce((s, r) => s + r.amount, 0);
   const outSum = recs.filter((r) => r.kind === "out").reduce((s, r) => s + r.amount, 0);
@@ -750,10 +832,10 @@ $("xlsxBtn").addEventListener("click", () => {
 
   // 1. まとめ
   const summary = [
-    ["まるみえ活動資金　収支報告"], ["期間", label], ["出力日", todayStr().replaceAll("-", "/")], [],
+    [currentProject === null ? "まるみえ活動資金　収支報告" : `まるみえ活動資金　事業別収支報告「${currentProject}」`], ["期間", label], ["出力日", todayStr().replaceAll("-", "/")], [],
     ["収入計", inSum], ["支出計", outSum], ["残金（収入計−支出計）", inSum - outSum],
     ["　うち未収", pendIn], ["　うち未払", pendOut], ["手元・口座にある額", inSum - outSum - pendIn + pendOut], [],
-    ["■ 事業ごと", ...head.slice(1)], ...sumBy(recs, "project"), [],
+    ...(currentProject === null ? [["■ 事業ごと", ...head.slice(1)], ...sumBy(recs, "project"), []] : []),
     ["■ 口座ごと", ...head.slice(1)], ...sumBy(recs, "account"), [],
     ["■ 科目ごと", ...head.slice(1)], ...sumBy(recs, "subject"),
   ];
@@ -780,7 +862,7 @@ $("xlsxBtn").addEventListener("click", () => {
   XLSX.utils.book_append_sheet(wb, sheet(summary, [24, 14, 14, 14]), "まとめ");
   XLSX.utils.book_append_sheet(wb, sheet(monthly, [14, 12, 12, 12, 14, 8]), "月ごとの収支");
   XLSX.utils.book_append_sheet(wb, sheet(list, [12, 6, 14, 28, 16, 18, 10, 11, 11, 12, 24]), "記録一覧");
-  XLSX.writeFile(wb, `活動資金_${label}.xlsx`);
+  XLSX.writeFile(wb, `活動資金_${fileProjectLabel()}${label}.xlsx`);
   toast("📗 Excelファイルを保存しました");
 });
 $("exportBtn").addEventListener("click", () => {
@@ -826,7 +908,18 @@ $("sampleBtn").addEventListener("click", async () => {
   save(); render(); toast("🧪 サンプルを入れました");
 });
 
+// 別のタブ・ウィンドウで入力されたときも、すぐにこの画面へ反映する
+window.addEventListener("storage", (e) => {
+  if (e.key !== STORE_KEY) return;
+  state = load();
+  if (editingId && !state.records.some((r) => r.id === editingId)) resetForm();
+  else refreshFormSelects(); // 入力途中の内容は消さない
+  render();
+});
+
 // ---------- はじめに ----------
+currentProject = projectFromHash();
+applyProjectView();
 resetForm();
 render();
 </script>
